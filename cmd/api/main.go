@@ -7,6 +7,16 @@ import (
 )
 
 func main() {
+	err := openDB()
+	if err != nil {
+		log.Panic(err)
+	}
+	defer closeDB()
+	err = setupDB()
+	if err != nil {
+		log.Panic(err)
+
+	}
 
 	cfg := config{addr: env.GetString("ADDR", ":8081")}
 	app := &aplicacion{config: cfg}
