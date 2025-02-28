@@ -1,7 +1,10 @@
 package main
 
-import "log"
-import "github.com/Antoniel03/farmatoronto-backend/internal/env"
+import (
+	"log"
+
+	"github.com/Antoniel03/farmatoronto-backend/internal/env"
+)
 
 func main() {
 	cfg := config{addr: env.GetString("ADDR", ":8081")}
@@ -9,4 +12,5 @@ func main() {
 	mux := app.mount()
 	log.Println("Servidor iniciado en el puerto" + app.config.addr)
 	log.Fatal(app.run(mux))
+
 }
