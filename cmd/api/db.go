@@ -2,6 +2,8 @@ package main
 
 import (
 	"database/sql"
+	"log"
+	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -9,15 +11,14 @@ import (
 var DB *sql.DB
 
 func setupDB() error {
-	_, err := DB.Exec(`
-		CREATE TABLE IF NOT EXISTS medicamentos(
-			id INTEGER NOT NULL PRIMARY KEY,
-			nombre TEXT,
-			componenteprincipal TEXT,
-			precio TEXT
-		)
-	`)
+	// Leer el archivo db_init.sql
+	sqlFile, err := os.ReadFile("db_init.sql")
+	if err != nil {
+		return err
+	}
 
+	// Ejecutar las consultas SQL del archivo
+	_, err = DB.Exec(string(sqlFile))
 	if err != nil {
 		return err
 	}
@@ -28,6 +29,7 @@ func setupDB() error {
 func openDB() error {
 	db, err := sql.Open("sqlite3", "./sqlite3.db")
 	if err != nil {
+		log.Println("Error al abrir la base de datos:", err)
 		return err
 	}
 
