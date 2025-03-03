@@ -6,4 +6,5 @@ requests
 internal/models
 webtesting
 scripts/db_script
-bin/main
+bin/
+test/
