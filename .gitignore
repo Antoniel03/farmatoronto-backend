@@ -1,3 +1,10 @@
 tmp
 .air.toml
 .envrc
+*.db
+requests
+internal/models
+webtesting
+scripts/db_script
+bin/
+test/
