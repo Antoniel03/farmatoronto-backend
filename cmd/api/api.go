@@ -4,23 +4,27 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Antoniel03/farmatoronto-backend/internal/models"
+	"github.com/Antoniel03/farmatoronto-backend/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
 // Para emular la BD
-var medicamentos = []models.Medicamento{}
-
-type aplicacion struct {
+type application struct {
 	config config
+	store  store.Storage
 }
 
 type config struct {
 	addr string
+	db   dbConfig
 }
 
-func (app *aplicacion) run(mux http.Handler) error {
+type dbConfig struct {
+	addr string
+}
+
+func (app *application) run(mux http.Handler) error {
 	srv := &http.Server{
 		Addr:         app.config.addr,
 		Handler:      enableCORS(mux),
@@ -31,7 +35,7 @@ func (app *aplicacion) run(mux http.Handler) error {
 	return srv.ListenAndServe()
 }
 
-func (app *aplicacion) mount() http.Handler {
+func (app *application) mount() http.Handler {
 
 	r := chi.NewRouter()
 
@@ -39,12 +43,28 @@ func (app *aplicacion) mount() http.Handler {
 	r.Use(middleware.Logger)
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
-		r.Get("/medicamentos", app.getManejadorMedicamentos)
+		r.Get("/medicines", app.getMedicinesHandler)
+		// r.Route("/user", func(r chi.Router)
 
-		r.Route("/medicamento", func(r chi.Router) {
-			r.Post("/", app.createManejadorMedicamento)
-			r.Get("/{id}", app.getManejadorMedicamento)
+		r.Route("/medicine", func(r chi.Router) {
+			r.Post("/create", app.createMedicineHandler)
+			r.Get("/{id}", app.getMedicineHandler)
+			r.Put("/{id}", app.createMedicineHandler)
+			r.Delete("/", app.createMedicineHandler)
 		})
+
+		r.Route("/employee", func(r chi.Router) {
+			r.Post("/", app.createEmployeeHandler)
+			r.Get("/", app.getEmployeesHandler)
+			r.Get("/{id}", app.getEmployeeHandler)
+		})
+
+		r.Route("/user", func(r chi.Router) {
+			r.Get("/login", app.loginHandler)
+			r.Post("/create", app.createUserHandler)
+			// r.Get("/{email}", app.getUserHandler)
+		})
+
 	})
 	return r
 }
@@ -63,5 +83,3 @@ func enableCORS(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
-//Manejadores
