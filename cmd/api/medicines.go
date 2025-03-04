@@ -2,16 +2,20 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/Antoniel03/farmatoronto-backend/internal/store"
-	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
-	"strconv"
+
+	"github.com/Antoniel03/farmatoronto-backend/internal/store"
+	"github.com/go-chi/chi/v5"
 )
 
 func (a *application) getMedicinesHandler(w http.ResponseWriter, r *http.Request) {
-	medicines := []store.Medicine{}
-	err := json.NewEncoder(w).Encode(medicines)
+	ctx := r.Context()
+	medicines, err := a.store.Medicines.GetAll(ctx)
+	if err != nil {
+		http.Error(w, "Error while retrieveng items", http.StatusInternalServerError)
+	}
+	err = json.NewEncoder(w).Encode(medicines)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -20,12 +24,12 @@ func (a *application) getMedicinesHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (a *application) getMedicineHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Println(err)
-		return
-	}
+	id := chi.URLParam(r, "id")
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	log.Println(err)
+	// 	return
+	// }
 	ctx := r.Context()
 
 	medicine, err := a.store.Medicines.GetByID(ctx, id)

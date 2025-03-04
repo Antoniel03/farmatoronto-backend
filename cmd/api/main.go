@@ -1,11 +1,10 @@
 package main
 
 import (
-	"log"
-
 	"github.com/Antoniel03/farmatoronto-backend/internal/db"
 	"github.com/Antoniel03/farmatoronto-backend/internal/env"
 	"github.com/Antoniel03/farmatoronto-backend/internal/store"
+	"log"
 )
 
 func main() {
@@ -14,6 +13,10 @@ func main() {
 		addr: env.GetString("ADDR", ":8081"),
 		db: dbConfig{
 			addr: env.GetString("DB_ADDR", "internal/db/farma_db.db"),
+		},
+		jwtAuth: jwtConfig{
+			tokenAuth:  NewJWTAuth("a-very-ultra-super-secure-secret!", "HS256"),
+			expiration: env.GetInt64("JWT_EXP", 3600),
 		},
 	}
 
