@@ -1,12 +1,15 @@
 package store
 
-import "context"
-import "database/sql"
+import (
+	"context"
+	"database/sql"
+)
 
 type Storage struct {
 	Medicines interface {
 		Create(context.Context, *Medicine) error
-		GetByID(context.Context, int) (*Medicine, error)
+		GetByID(context.Context, string) (*Medicine, error)
+		GetAll(context.Context) (*[]Medicine, error)
 	}
 
 	Employees interface {
@@ -16,6 +19,8 @@ type Storage struct {
 	Users interface {
 		Create(context.Context, *User) error
 		GetByEmail(context.Context, string) (*User, error)
+		GetByID(context.Context, string) (*User, error)
+		GetAll(context.Context) (*[]User, error)
 	}
 }
 

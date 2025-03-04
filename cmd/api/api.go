@@ -7,6 +7,7 @@ import (
 	"github.com/Antoniel03/farmatoronto-backend/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/jwtauth/v5"
 )
 
 // Para emular la BD
@@ -16,12 +17,18 @@ type application struct {
 }
 
 type config struct {
-	addr string
-	db   dbConfig
+	addr    string
+	db      dbConfig
+	jwtAuth jwtConfig
 }
 
 type dbConfig struct {
 	addr string
+}
+
+type jwtConfig struct {
+	tokenAuth  jwtauth.JWTAuth
+	expiration int64
 }
 
 func (app *application) run(mux http.Handler) error {
@@ -35,34 +42,46 @@ func (app *application) run(mux http.Handler) error {
 	return srv.ListenAndServe()
 }
 
+//TODO middleware de autorizacion
+
 func (app *application) mount() http.Handler {
-
 	r := chi.NewRouter()
+	tkAuth := &app.config.jwtAuth.tokenAuth
 
-	r.Use(middleware.Recoverer)
 	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
-		r.Get("/medicines", app.getMedicinesHandler)
 		// r.Route("/user", func(r chi.Router)
 
-		r.Route("/medicine", func(r chi.Router) {
-			r.Post("/create", app.createMedicineHandler)
+		r.Route("/medicines", func(r chi.Router) {
+			r.Get("/", app.getMedicinesHandler)
 			r.Get("/{id}", app.getMedicineHandler)
-			r.Put("/{id}", app.createMedicineHandler)
-			r.Delete("/", app.createMedicineHandler)
+			r.Post("/", app.createMedicineHandler)
+			// r.Put("/{id}", app.createMedicineHandler)
+			// r.Delete("/{id}", app.createMedicineHandler)
 		})
 
-		r.Route("/employee", func(r chi.Router) {
+		r.Route("/employees", func(r chi.Router) {
 			r.Post("/", app.createEmployeeHandler)
 			r.Get("/", app.getEmployeesHandler)
 			r.Get("/{id}", app.getEmployeeHandler)
 		})
 
-		r.Route("/user", func(r chi.Router) {
-			r.Get("/login", app.loginHandler)
-			r.Post("/create", app.createUserHandler)
-			// r.Get("/{email}", app.getUserHandler)
+		r.Route("/auth", func(r chi.Router) {
+			r.Post("/login", app.loginHandler)
+			r.Group(func(r chi.Router) {
+				r.Use(jwtauth.Verifier(tkAuth))
+				r.Use(jwtauth.Authenticator(tkAuth))
+				r.Post("/register", app.createUserHandler)
+			})
+			r.Group(func(r chi.Router) {
+				r.Use(jwtauth.Verifier(tkAuth))
+				r.Use(jwtauth.Authenticator(tkAuth))
+				r.Get("/users/{id}", app.getUserHandler)
+				r.Get("/users", app.getUsersHandler)
+
+			})
 		})
 
 	})

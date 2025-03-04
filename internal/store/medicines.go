@@ -18,20 +18,20 @@ type MedicinesStore struct {
 }
 
 func (s *MedicinesStore) Create(ctx context.Context, m *Medicine) error {
-	query := (`INSERT INTO medicamentos(nombre,componenteprincipal,precio)
-          VALUES(?,?,?) RETURNING id`)
+	query := `INSERT INTO medicamentos(nombre,componenteprincipal,precio)
+          VALUES(?,?,?) RETURNING id`
 
 	var id int
 	err := s.db.QueryRowContext(ctx, query, m.Name, m.MainComponent, m.Price).Scan(&id)
 	if err != nil {
 		return err
 	}
-	log.Printf("Query completed for new user with id: %v", id)
+	log.Printf("Query completed for new medicine with id: %v", id)
 	return nil
 }
 
-func (s *MedicinesStore) GetByID(ctx context.Context, id int) (*Medicine, error) {
-	query := (`SELECT * FROM medicamentos WHERE id=?`)
+func (s *MedicinesStore) GetByID(ctx context.Context, id string) (*Medicine, error) {
+	query := `SELECT * FROM medicamentos WHERE id=?`
 
 	m := Medicine{}
 	err := s.db.QueryRowContext(ctx, query, id).Scan(&m.Id, &m.Name, &m.MainComponent, &m.Price)
@@ -40,4 +40,27 @@ func (s *MedicinesStore) GetByID(ctx context.Context, id int) (*Medicine, error)
 	}
 	log.Printf("Query completed for the requested item\n%+v", m)
 	return &m, nil
+}
+
+func (s *MedicinesStore) GetAll(ctx context.Context) (*[]Medicine, error) {
+	query := `SELECT * FROM medicamentos`
+	var medicines []Medicine
+	rows, err := s.db.QueryContext(ctx, query)
+	if err != nil {
+		log.Println("Error")
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		item := Medicine{}
+		err := rows.Scan(&item.Id, &item.Name, &item.MainComponent, &item.Price)
+		if err != nil {
+			log.Println("Error")
+			return &medicines, err
+		}
+		log.Printf("storing item: %+v", item)
+		medicines = append(medicines, item)
+	}
+	return &medicines, nil
 }

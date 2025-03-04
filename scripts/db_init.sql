@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS medicamentos(
 
 CREATE TABLE IF NOT EXISTS usuarios(
 			id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-			correo VARCHAR(50),
+			correo VARCHAR(50) UNIQUE,
 			contrasena VARCHAR(50),
       tipo_usuario VARCHAR(15)
       );
