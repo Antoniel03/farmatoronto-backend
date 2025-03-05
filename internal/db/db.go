@@ -10,7 +10,7 @@ import (
 
 func SetupDB(database *sql.DB) error {
 	// Leer el archivo db_init.sql
-	sqlFile, err := os.ReadFile("db_init.sql")
+	sqlFile, err := os.ReadFile("../../scripts/db_init.sql")
 	if err != nil {
 		return err
 	}
