@@ -26,7 +26,7 @@ func (a *application) createEmployeeHandler(w http.ResponseWriter, r *http.Reque
 		Name:        payload.Name,
 		Lastname:    payload.Lastname,
 		Birthday:    payload.Birthday,
-		Direction:   payload.Direction,
+		Address:     payload.Address,
 		PhoneNumber: payload.PhoneNumber,
 		Email:       payload.Email,
 	}

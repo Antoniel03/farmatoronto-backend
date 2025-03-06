@@ -25,11 +25,6 @@ func (a *application) getMedicinesHandler(w http.ResponseWriter, r *http.Request
 
 func (a *application) getMedicineHandler(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	log.Println(err)
-	// 	return
-	// }
 	ctx := r.Context()
 
 	medicine, err := a.store.Medicines.GetByID(ctx, id)
@@ -59,7 +54,6 @@ func (a *application) createMedicineHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	m := &store.Medicine{
-		Id:            payload.Id,
 		Name:          payload.Name,
 		MainComponent: payload.MainComponent,
 		Price:         payload.Price,
@@ -71,5 +65,5 @@ func (a *application) createMedicineHandler(w http.ResponseWriter, r *http.Reque
 		log.Println("Couldn't complete operation: ", err)
 		return
 	}
-
+	w.WriteHeader(http.StatusCreated)
 }

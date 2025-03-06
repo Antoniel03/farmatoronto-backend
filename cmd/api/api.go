@@ -42,8 +42,6 @@ func (app *application) run(mux http.Handler) error {
 	return srv.ListenAndServe()
 }
 
-//TODO middleware de autorizacion
-
 func (app *application) mount() http.Handler {
 	r := chi.NewRouter()
 	tkAuth := &app.config.jwtAuth.tokenAuth
@@ -52,13 +50,13 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
-		// r.Route("/user", func(r chi.Router)
 
+		//TODO retornar datos acorde a la vista
 		r.Route("/medicines", func(r chi.Router) {
 			r.Get("/", app.getMedicinesHandler)
 			r.Get("/{id}", app.getMedicineHandler)
 			r.Post("/", app.createMedicineHandler)
-			// r.Put("/{id}", app.createMedicineHandler)
+			// r.Patch("/{id}", app.createMedicineHandler)
 			// r.Delete("/{id}", app.createMedicineHandler)
 		})
 
@@ -74,14 +72,21 @@ func (app *application) mount() http.Handler {
 				r.Use(jwtauth.Verifier(tkAuth))
 				r.Use(jwtauth.Authenticator(tkAuth))
 				r.Post("/register", app.createUserHandler)
-			})
-			r.Group(func(r chi.Router) {
-				r.Use(jwtauth.Verifier(tkAuth))
-				r.Use(jwtauth.Authenticator(tkAuth))
 				r.Get("/users/{id}", app.getUserHandler)
 				r.Get("/users", app.getUsersHandler)
-
 			})
+		})
+		r.Group(func(r chi.Router) {
+			//TODO r.Route para cada uno
+			r.Use(jwtauth.Verifier(tkAuth))
+			r.Use(jwtauth.Authenticator(tkAuth))
+			r.Post("/labs", app.createLabHandler)
+			r.Get("/labs/{id}", app.getLabHandler)
+			r.Get("/labs", app.getLabsHandler)
+
+			r.Post("/branches", app.createBranchHandler)
+			r.Get("/branches/{id}", app.getBranchHandler)
+			r.Get("/branches", app.getBranchesHandler)
 		})
 
 	})
