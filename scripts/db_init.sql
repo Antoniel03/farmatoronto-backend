@@ -1,3 +1,12 @@
+CREATE TABLE IF NOT EXISTS usuarios(
+            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            correo VARCHAR(50) UNIQUE,
+            contrasena VARCHAR(50),
+      tipo_usuario VARCHAR(15)
+      codempleado INTEGER,
+        FOREIGN KEY(codempleado) REFERENCES empleados(id)
+      );
+
 CREATE TABLE IF NOT EXISTS empleados(
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     nombre VARCHAR(50),
