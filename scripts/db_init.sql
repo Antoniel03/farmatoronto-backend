@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS medicamentos(
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     nombre VARCHAR(50),
     componenteprincipal VARCHAR(50),
+    accion VARCHAR(50),
+    presentacion VARCHAR(50),
     precio REAL
 );
 
