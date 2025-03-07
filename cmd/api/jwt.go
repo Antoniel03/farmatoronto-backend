@@ -11,7 +11,7 @@ func NewJWTAuth(secret string, algorithm string) jwtauth.JWTAuth {
 	return *tokenAuth
 }
 
-func GenerateJWT(id int, role string, exp int64, tokenAuth *jwtauth.JWTAuth) (string, error) {
+func GenerateJWT(id int64, role string, exp int64, tokenAuth *jwtauth.JWTAuth) (string, error) {
 	expiration := time.Second * time.Duration(exp)
 	claims := map[string]interface{}{"id": id, "role": role}
 	jwtauth.SetExpiry(claims, time.Now().Add(expiration))

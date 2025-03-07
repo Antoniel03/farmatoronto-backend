@@ -18,7 +18,6 @@ type application struct {
 	config config
 	store  store.Storage
 }
-
 type config struct {
 	addr    string
 	db      dbConfig
@@ -56,7 +55,7 @@ func (app *application) mount() http.Handler {
 
 		//TODO retornar datos acorde a la vista
 		r.Route("/medicines", func(r chi.Router) {
-			r.Get("/catalog", app.getCatalogHandler)
+			// r.Get("/catalog", app.getCatalogHandler)
 			r.Get("/", app.getMedicinesHandler)
 			r.Get("/{id}", app.getMedicineHandler)
 			r.Post("/", app.createMedicineHandler)
@@ -68,12 +67,12 @@ func (app *application) mount() http.Handler {
 			r.Get("/{id}", app.getEmployeeHandler)
 		})
 
+		r.Post("/register", app.createUserHandler)
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/login", app.loginHandler)
 			r.Group(func(r chi.Router) {
 				r.Use(jwtauth.Verifier(tkAuth))
 				r.Use(jwtauth.Authenticator(tkAuth))
-				r.Post("/register", app.createUserHandler)
 				r.Get("/users/{id}", app.getUserHandler)
 				r.Get("/users", app.getUsersHandler)
 			})
@@ -110,43 +109,44 @@ func enableCORS(next http.Handler) http.Handler {
 	})
 }
 
-//	func GetPaginationParams(query *url.Values) (int, int, error) {
-//		strLimit := query.Get("limit")
-//		strOffset := query.Get("offset")
-//
-//		if strLimit == "" || strOffset == "" {
-//			return -1, -1, errors.New("invalid params")
-//		}
-//		convError := errors.New("conversion error")
-//		offset, err := strconv.Atoi(strOffset)
-//		if err != nil {
-//			return -1, -1, convError
-//		}
-//
-//		limit, err := strconv.Atoi(strOffset)
-//		if err != nil {
-//			return -1, -1, convError
-//		}
-//
-//		return limit, offset, nil
-//	}
-//
-//	func HasPaginationParams(query *url.Values) bool {
-//		if query.Has("limit") && query.Has("offset") {
-//			return true
-//		}
-//		return false
-//	}
-func GetPaginationParam(query *url.Values) (int, error) {
-	strPage := query.Get("page")
+func GetPaginationParams(query *url.Values) (int, int, error) {
+	strLimit := query.Get("limit")
+	strOffset := query.Get("offset")
 
-	if strPage == "" {
-		return -1, errors.New("invalid params")
+	if strLimit == "" || strOffset == "" {
+		return -1, -1, errors.New("invalid params")
 	}
 	convError := errors.New("conversion error")
-	page, err := strconv.Atoi(strPage)
+	offset, err := strconv.Atoi(strOffset)
 	if err != nil {
-		return -1, convError
+		return -1, -1, convError
 	}
-	return page, nil
+
+	limit, err := strconv.Atoi(strLimit)
+	if err != nil {
+		return -1, -1, convError
+	}
+
+	return limit, offset, nil
 }
+
+func HasPaginationParams(query *url.Values) bool {
+	if query.Has("limit") && query.Has("offset") {
+		return true
+	}
+	return false
+}
+
+// func GetPaginationParam(query *url.Values) (int, error) {
+// 	strPage := query.Get("page")
+//
+// 	if strPage == "" {
+// 		return -1, errors.New("invalid params")
+// 	}
+// 	convError := errors.New("conversion error")
+// 	page, err := strconv.Atoi(strPage)
+// 	if err != nil {
+// 		return -1, convError
+// 	}
+// 	return page, nil
+// }

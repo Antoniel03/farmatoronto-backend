@@ -60,11 +60,9 @@ func (a *application) getLabHandler(w http.ResponseWriter, r *http.Request) {
 func (a *application) getLabsHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 
-	if query.Has("page") {
-		limit := 3
-		if page, err := GetPaginationParam(&query); err == nil {
-			log.Print("page: ", page)
-			a.getPaginatedLabs(w, r, limit, page*limit)
+	if query.Has("limit") && query.Has("offset") {
+		if limit, offset, err := GetPaginationParams(&query); err == nil {
+			a.getPaginatedLabs(w, r, limit, offset)
 		} else {
 			http.Error(w, "invalid page paramameter", http.StatusInternalServerError)
 		}

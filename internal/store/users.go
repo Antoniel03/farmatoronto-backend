@@ -7,10 +7,11 @@ import (
 )
 
 type User struct {
-	Id       string `json:"id"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	UserType string `json:"user_type"`
+	ID         int64  `json:"id"`
+	EmployeeID int64  `json:"employee_id"`
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	UserType   string `json:"user_type"`
 }
 
 type UsersStore struct {
@@ -18,10 +19,10 @@ type UsersStore struct {
 }
 
 func (s *UsersStore) Create(ctx context.Context, u *User) error {
-	query := `INSERT INTO usuarios(correo,contrasena,tipo_usuario)
-          VALUES(?,?,?) RETURNING id`
+	query := `INSERT INTO usuarios(correo,contrasena,tipo_usuario,codempleado)
+          VALUES(?,?,?,?) RETURNING id`
 	var id int
-	err := s.db.QueryRowContext(ctx, query, u.Email, u.Password, u.UserType).Scan(&id)
+	err := s.db.QueryRowContext(ctx, query, u.Email, u.Password, u.UserType, u.EmployeeID).Scan(&id)
 	if err != nil {
 		return err
 	}
@@ -41,7 +42,7 @@ func (s *UsersStore) GetAll(ctx context.Context) (*[]User, error) {
 	defer rows.Close()
 	for rows.Next() {
 		item := User{}
-		err := rows.Scan(&item.Id, &item.Email, &item.Password, &item.UserType)
+		err := rows.Scan(&item.ID, &item.Email, &item.Password, &item.UserType, &item.EmployeeID)
 		if err != nil {
 			return &users, err
 		}
@@ -54,7 +55,7 @@ func (s *UsersStore) GetByID(ctx context.Context, id string) (*User, error) {
 	query := `SELECT * FROM usuarios WHERE id=?`
 
 	u := User{}
-	err := s.db.QueryRowContext(ctx, query, id).Scan(&u.Id, &u.Email, &u.Password, &u.UserType)
+	err := s.db.QueryRowContext(ctx, query, id).Scan(&u.ID, &u.Email, &u.Password, &u.UserType, &u.EmployeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +67,7 @@ func (s *UsersStore) GetByEmail(ctx context.Context, email string) (*User, error
 	query := `SELECT * FROM usuarios WHERE correo=?`
 
 	u := User{}
-	err := s.db.QueryRowContext(ctx, query, email).Scan(&u.Id, &u.Email, &u.Password, &u.UserType)
+	err := s.db.QueryRowContext(ctx, query, email).Scan(&u.ID, &u.Email, &u.Password, &u.UserType, &u.EmployeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +87,7 @@ func (s *UsersStore) GetPaginated(ctx context.Context, limit int, offset int) (*
 	defer rows.Close()
 	for rows.Next() {
 		item := User{}
-		err := rows.Scan(&item.Id, &item.Email, &item.Password, &item.UserType)
+		err := rows.Scan(&item.ID, &item.Email, &item.Password, &item.UserType, &item.EmployeeID)
 		if err != nil {
 			return &users, err
 		}

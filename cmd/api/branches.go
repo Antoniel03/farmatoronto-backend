@@ -57,11 +57,9 @@ func (a *application) getBranchHandler(w http.ResponseWriter, r *http.Request) {
 func (a *application) getBranchesHandler(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query()
-	if query.Has("page") {
-		limit := 2
-		if page, err := GetPaginationParam(&query); err == nil {
-			log.Print("page: ", page)
-			a.getPaginatedBranches(w, r, limit, page*limit)
+	if query.Has("limit") && query.Has("offset") {
+		if limit, offset, err := GetPaginationParams(&query); err == nil {
+			a.getPaginatedBranches(w, r, limit, offset)
 		} else {
 			http.Error(w, "invalid page paramameter", http.StatusInternalServerError)
 		}
