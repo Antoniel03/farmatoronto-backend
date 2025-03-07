@@ -65,3 +65,26 @@ func (s *LabsStore) GetAll(ctx context.Context) (*[]Lab, error) {
 	}
 	return &labs, nil
 }
+
+func (s *LabsStore) GetPaginated(ctx context.Context, limit int, offset int) (*[]Lab, error) {
+	query := `SELECT * FROM laboratorio LIMIT ? OFFSET ?`
+	var labs []Lab
+	rows, err := s.db.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		log.Println("Error")
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		item := Lab{}
+		err := rows.Scan(&item.Id, &item.Name, &item.Address, &item.PhoneNumber)
+		if err != nil {
+			log.Println("Error")
+			return &labs, err
+		}
+		log.Printf("storing item: %+v", item)
+		labs = append(labs, item)
+	}
+	return &labs, nil
+}

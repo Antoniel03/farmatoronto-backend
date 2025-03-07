@@ -67,3 +67,33 @@ func (a *application) createMedicineHandler(w http.ResponseWriter, r *http.Reque
 	}
 	w.WriteHeader(http.StatusCreated)
 }
+
+func (a *application) getPaginatedMedicines(w http.ResponseWriter, r *http.Request, limit int, offset int) {
+	ctx := r.Context()
+	medicines, err := a.store.Medicines.GetPaginated(ctx, limit, offset)
+	if err != nil {
+		http.Error(w, "Error while retrieveng items", http.StatusInternalServerError)
+	}
+	err = json.NewEncoder(w).Encode(medicines)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-type", "application/json")
+}
+
+func (a *application) getCatalogHandler(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+
+	if !query.Has("page") {
+		http.Error(w, "pagination parameters not found", http.StatusBadRequest)
+		return
+	}
+	page, err := GetPaginationParam(&query)
+	if err != nil {
+		http.Error(w, "invalid pagination parameter", http.StatusBadRequest)
+		return
+	}
+	limit := 2
+	a.getPaginatedMedicines(w, r, limit, page*limit)
+}

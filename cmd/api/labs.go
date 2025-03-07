@@ -58,6 +58,19 @@ func (a *application) getLabHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *application) getLabsHandler(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+
+	if query.Has("page") {
+		limit := 3
+		if page, err := GetPaginationParam(&query); err == nil {
+			log.Print("page: ", page)
+			a.getPaginatedLabs(w, r, limit, page*limit)
+		} else {
+			http.Error(w, "invalid page paramameter", http.StatusInternalServerError)
+		}
+		return
+	}
+
 	ctx := r.Context()
 	labs, err := a.store.Labs.GetAll(ctx)
 	if err != nil {
@@ -69,4 +82,19 @@ func (a *application) getLabsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-type", "application/json")
+}
+
+func (a *application) getPaginatedLabs(w http.ResponseWriter, r *http.Request, limit int, offset int) {
+	ctx := r.Context()
+	labs, err := a.store.Labs.GetPaginated(ctx, limit, offset)
+	if err != nil {
+		http.Error(w, "Error while retrieveng items", http.StatusInternalServerError)
+	}
+	err = json.NewEncoder(w).Encode(labs)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-type", "application/json")
+
 }

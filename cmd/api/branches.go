@@ -55,8 +55,35 @@ func (a *application) getBranchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *application) getBranchesHandler(w http.ResponseWriter, r *http.Request) {
+
+	query := r.URL.Query()
+	if query.Has("page") {
+		limit := 2
+		if page, err := GetPaginationParam(&query); err == nil {
+			log.Print("page: ", page)
+			a.getPaginatedBranches(w, r, limit, page*limit)
+		} else {
+			http.Error(w, "invalid page paramameter", http.StatusInternalServerError)
+		}
+		return
+	}
+
 	ctx := r.Context()
 	branches, err := a.store.Branches.GetAll(ctx)
+	if err != nil {
+		http.Error(w, "Error while retrieveng items", http.StatusInternalServerError)
+	}
+	err = json.NewEncoder(w).Encode(branches)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-type", "application/json")
+}
+
+func (a *application) getPaginatedBranches(w http.ResponseWriter, r *http.Request, limit int, offset int) {
+	ctx := r.Context()
+	branches, err := a.store.Branches.GetPaginated(ctx, limit, offset)
 	if err != nil {
 		http.Error(w, "Error while retrieveng items", http.StatusInternalServerError)
 	}

@@ -1,7 +1,10 @@
 package main
 
 import (
+	"errors"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/Antoniel03/farmatoronto-backend/internal/store"
@@ -53,11 +56,10 @@ func (app *application) mount() http.Handler {
 
 		//TODO retornar datos acorde a la vista
 		r.Route("/medicines", func(r chi.Router) {
+			r.Get("/catalog", app.getCatalogHandler)
 			r.Get("/", app.getMedicinesHandler)
 			r.Get("/{id}", app.getMedicineHandler)
 			r.Post("/", app.createMedicineHandler)
-			// r.Patch("/{id}", app.createMedicineHandler)
-			// r.Delete("/{id}", app.createMedicineHandler)
 		})
 
 		r.Route("/employees", func(r chi.Router) {
@@ -77,7 +79,7 @@ func (app *application) mount() http.Handler {
 			})
 		})
 		r.Group(func(r chi.Router) {
-			//TODO r.Route para cada uno
+			//TODO r.Route lab
 			r.Use(jwtauth.Verifier(tkAuth))
 			r.Use(jwtauth.Authenticator(tkAuth))
 			r.Post("/labs", app.createLabHandler)
@@ -106,4 +108,45 @@ func enableCORS(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+//	func GetPaginationParams(query *url.Values) (int, int, error) {
+//		strLimit := query.Get("limit")
+//		strOffset := query.Get("offset")
+//
+//		if strLimit == "" || strOffset == "" {
+//			return -1, -1, errors.New("invalid params")
+//		}
+//		convError := errors.New("conversion error")
+//		offset, err := strconv.Atoi(strOffset)
+//		if err != nil {
+//			return -1, -1, convError
+//		}
+//
+//		limit, err := strconv.Atoi(strOffset)
+//		if err != nil {
+//			return -1, -1, convError
+//		}
+//
+//		return limit, offset, nil
+//	}
+//
+//	func HasPaginationParams(query *url.Values) bool {
+//		if query.Has("limit") && query.Has("offset") {
+//			return true
+//		}
+//		return false
+//	}
+func GetPaginationParam(query *url.Values) (int, error) {
+	strPage := query.Get("page")
+
+	if strPage == "" {
+		return -1, errors.New("invalid params")
+	}
+	convError := errors.New("conversion error")
+	page, err := strconv.Atoi(strPage)
+	if err != nil {
+		return -1, convError
+	}
+	return page, nil
 }

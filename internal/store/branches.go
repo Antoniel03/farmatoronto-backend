@@ -66,3 +66,26 @@ func (s *BranchesStore) GetAll(ctx context.Context) (*[]Branch, error) {
 	}
 	return &branches, nil
 }
+
+func (s *BranchesStore) GetPaginated(ctx context.Context, limit int, offset int) (*[]Branch, error) {
+	query := `SELECT * FROM farmacia_sucursal LIMIT ? OFFSET ?`
+	var branches []Branch
+	rows, err := s.db.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		log.Println("Error")
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		item := Branch{}
+		err := rows.Scan(&item.Id, &item.CityID, &item.Name, &item.Address)
+		if err != nil {
+			log.Println("Error")
+			return &branches, err
+		}
+		log.Printf("storing item: %+v", item)
+		branches = append(branches, item)
+	}
+	return &branches, nil
+}

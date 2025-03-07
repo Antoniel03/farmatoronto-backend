@@ -10,6 +10,7 @@ type Storage struct {
 		Create(context.Context, *Medicine) error
 		GetByID(context.Context, string) (*Medicine, error)
 		GetAll(context.Context) (*[]Medicine, error)
+		GetPaginated(context.Context, int, int) (*[]Medicine, error)
 	}
 
 	Employees interface {
@@ -21,18 +22,21 @@ type Storage struct {
 		GetByEmail(context.Context, string) (*User, error)
 		GetByID(context.Context, string) (*User, error)
 		GetAll(context.Context) (*[]User, error)
+		GetPaginated(context.Context, int, int) (*[]User, error)
 	}
 
 	Labs interface {
 		Create(context.Context, *Lab) error
 		GetByID(context.Context, string) (*Lab, error)
 		GetAll(context.Context) (*[]Lab, error)
+		GetPaginated(context.Context, int, int) (*[]Lab, error)
 	}
 
 	Branches interface {
 		Create(context.Context, *Branch) error
 		GetByID(context.Context, string) (*Branch, error)
 		GetAll(context.Context) (*[]Branch, error)
+		GetPaginated(context.Context, int, int) (*[]Branch, error)
 	}
 }
 
