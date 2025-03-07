@@ -64,6 +64,19 @@ func (a *application) createUserHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (a *application) getUsersHandler(w http.ResponseWriter, r *http.Request) {
+
+	query := r.URL.Query()
+	if query.Has("page") {
+		limit := 2
+		if page, err := GetPaginationParam(&query); err == nil {
+			log.Print("page: ", page)
+			a.getPaginatedUsers(w, r, limit, page*limit)
+		} else {
+			http.Error(w, "invalid page paramameter", http.StatusInternalServerError)
+		}
+		return
+	}
+
 	ctx := r.Context()
 	users, err := a.store.Users.GetAll(ctx)
 	if err != nil {
@@ -142,4 +155,18 @@ func (a *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-type", "application/json")
 
+}
+
+func (a *application) getPaginatedUsers(w http.ResponseWriter, r *http.Request, limit int, offset int) {
+	ctx := r.Context()
+	users, err := a.store.Users.GetPaginated(ctx, limit, offset)
+	if err != nil {
+		http.Error(w, "Error while retrieveng items", http.StatusInternalServerError)
+	}
+	err = json.NewEncoder(w).Encode(users)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-type", "application/json")
 }

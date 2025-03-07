@@ -1,7 +1,10 @@
 package main
 
 import (
+	"errors"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/Antoniel03/farmatoronto-backend/internal/store"
@@ -42,8 +45,6 @@ func (app *application) run(mux http.Handler) error {
 	return srv.ListenAndServe()
 }
 
-//TODO middleware de autorizacion
-
 func (app *application) mount() http.Handler {
 	r := chi.NewRouter()
 	tkAuth := &app.config.jwtAuth.tokenAuth
@@ -52,14 +53,13 @@ func (app *application) mount() http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
-		// r.Route("/user", func(r chi.Router)
 
+		//TODO retornar datos acorde a la vista
 		r.Route("/medicines", func(r chi.Router) {
+			r.Get("/catalog", app.getCatalogHandler)
 			r.Get("/", app.getMedicinesHandler)
 			r.Get("/{id}", app.getMedicineHandler)
 			r.Post("/", app.createMedicineHandler)
-			// r.Put("/{id}", app.createMedicineHandler)
-			// r.Delete("/{id}", app.createMedicineHandler)
 		})
 
 		r.Route("/employees", func(r chi.Router) {
@@ -74,14 +74,21 @@ func (app *application) mount() http.Handler {
 				r.Use(jwtauth.Verifier(tkAuth))
 				r.Use(jwtauth.Authenticator(tkAuth))
 				r.Post("/register", app.createUserHandler)
-			})
-			r.Group(func(r chi.Router) {
-				r.Use(jwtauth.Verifier(tkAuth))
-				r.Use(jwtauth.Authenticator(tkAuth))
 				r.Get("/users/{id}", app.getUserHandler)
 				r.Get("/users", app.getUsersHandler)
-
 			})
+		})
+		r.Group(func(r chi.Router) {
+			//TODO r.Route lab
+			r.Use(jwtauth.Verifier(tkAuth))
+			r.Use(jwtauth.Authenticator(tkAuth))
+			r.Post("/labs", app.createLabHandler)
+			r.Get("/labs/{id}", app.getLabHandler)
+			r.Get("/labs", app.getLabsHandler)
+
+			r.Post("/branches", app.createBranchHandler)
+			r.Get("/branches/{id}", app.getBranchHandler)
+			r.Get("/branches", app.getBranchesHandler)
 		})
 
 	})
@@ -101,4 +108,45 @@ func enableCORS(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+//	func GetPaginationParams(query *url.Values) (int, int, error) {
+//		strLimit := query.Get("limit")
+//		strOffset := query.Get("offset")
+//
+//		if strLimit == "" || strOffset == "" {
+//			return -1, -1, errors.New("invalid params")
+//		}
+//		convError := errors.New("conversion error")
+//		offset, err := strconv.Atoi(strOffset)
+//		if err != nil {
+//			return -1, -1, convError
+//		}
+//
+//		limit, err := strconv.Atoi(strOffset)
+//		if err != nil {
+//			return -1, -1, convError
+//		}
+//
+//		return limit, offset, nil
+//	}
+//
+//	func HasPaginationParams(query *url.Values) bool {
+//		if query.Has("limit") && query.Has("offset") {
+//			return true
+//		}
+//		return false
+//	}
+func GetPaginationParam(query *url.Values) (int, error) {
+	strPage := query.Get("page")
+
+	if strPage == "" {
+		return -1, errors.New("invalid params")
+	}
+	convError := errors.New("conversion error")
+	page, err := strconv.Atoi(strPage)
+	if err != nil {
+		return -1, convError
+	}
+	return page, nil
 }

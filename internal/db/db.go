@@ -2,19 +2,21 @@ package db
 
 import (
 	"database/sql"
+
 	_ "github.com/mattn/go-sqlite3"
+
+	"os"
 )
 
 func SetupDB(database *sql.DB) error {
-	_, err := database.Exec(`
-		CREATE TABLE IF NOT EXISTS medicamentos(
-			id INTEGER NOT NULL PRIMARY KEY,
-			nombre TEXT,
-			componenteprincipal TEXT,
-			precio TEXT
-		)
-	`)
+	// Leer el archivo db_init.sql
+	sqlFile, err := os.ReadFile("scripts/db_init.sql")
+	if err != nil {
+		return err
+	}
 
+	// Ejecutar las consultas SQL del archivo
+	_, err = database.Exec(string(sqlFile))
 	if err != nil {
 		return err
 	}

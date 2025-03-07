@@ -10,7 +10,7 @@ type Employee struct {
 	Name        string `json:"name"`
 	Lastname    string `json:"lastname"`
 	Birthday    string `json:"birthday`
-	Direction   string `json:"direction"`
+	Address     string `json:"address"`
 	PhoneNumber string `json:"phonenumber"`
 	Email       string `json:"email"`
 }

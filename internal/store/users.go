@@ -73,3 +73,24 @@ func (s *UsersStore) GetByEmail(ctx context.Context, email string) (*User, error
 	log.Printf("Query completed for the requested item\n%+v", u)
 	return &u, nil
 }
+
+func (s *UsersStore) GetPaginated(ctx context.Context, limit int, offset int) (*[]User, error) {
+	query := `SELECT * FROM usuarios LIMIT ? OFFSET ?`
+	var users []User
+
+	rows, err := s.db.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		item := User{}
+		err := rows.Scan(&item.Id, &item.Email, &item.Password, &item.UserType)
+		if err != nil {
+			return &users, err
+		}
+		users = append(users, item)
+	}
+	return &users, nil
+}
