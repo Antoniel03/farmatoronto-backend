@@ -2,12 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"log"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/Antoniel03/farmatoronto-backend/internal/store"
 	"github.com/go-chi/chi/v5"
@@ -24,10 +20,11 @@ func (a *application) getMedicinesHandler(w http.ResponseWriter, r *http.Request
 
 	query := r.URL.Query()
 
-	q, err := medicineFiltering(&query)
-	if err == nil {
-		log.Println(q)
-	}
+	// q, err := medicineFiltering(&query)
+	// if err == nil {
+	// 	log.Println(q)
+	// 	log.Println(err)
+	// }
 
 	if query.Has("limit") && query.Has("offset") {
 		if limit, offset, err := GetPaginationParams(&query); err == nil {
@@ -118,41 +115,73 @@ func (a *application) getPaginatedMedicines(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-type", "application/json")
 }
 
-func medicineFiltering(r *url.Values) (string, error) {
-	branch := r.Get("branch")
-	drugSubstance := r.Get("drug_substance")
+// func medicineFiltering(r *url.Values) (string, error) {
+// 	branch := r.Get("branch")
+// 	drugSubstance := r.Get("drug_substance")
+//
+// 	limit, offset, err := GetPaginationParams(r)
+// 	if err != nil {
+// 		return "", errors.New("invalid pagination parameters")
+// 	}
+//
+// 	whereClauses := []string{}
+// 	args := []interface{}{}
+// 	argIndex := 1
+//
+// 	if branch != "" {
+// 		whereClauses = append(whereClauses, "farmacia_sucursal.id=?")
+// 		args = append(args, "%"+branch+"%")
+// 		argIndex++
+// 	}
+//
+// 	if drugSubstance != "" {
+// 		whereClauses = append(whereClauses, "monodrogas.id=?")
+// 		args = append(args, "%"+drugSubstance+"%")
+// 		argIndex++
+// 	}
+//
+// 	args = append(args, limit, offset)
+//
+// 	whereSQL := ""
+// 	if len(whereClauses) > 0 {
+// 		whereSQL = "WHERE " + strings.Join(whereClauses, " AND ")
+// 	}
+//
+// 	query := fmt.Sprintf("SELECT id, name FROM medicamentos LIMIT $%d OFFSET $%d", whereSQL, argIndex, argIndex+1)
+// 	return query, nil
+// }
 
-	limit, offset, err := GetPaginationParams(r)
+func (a *application) getMedicinesViewHandler(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+
+	limit, offset, err := GetPaginationParams(&query)
 	if err != nil {
-		return "", errors.New("invalid pagination parameters")
+		http.Error(w, "invalid parameters", http.StatusBadRequest)
+		return
 	}
+	branch := query.Get("branch")
+	drugSubstance := query.Get("drugsubstance")
 
-	whereClauses := []string{}
-	args := []interface{}{}
-	argIndex := 1
-
-	if branch != "" {
-		whereClauses = append(whereClauses, "farmacia_sucursal.id=?")
-		args = append(args, "%"+branch+"%")
-		argIndex++
+	log.Println("branch: " + branch + ", drug: " + drugSubstance)
+	ctx := r.Context()
+	medicines, err := a.store.Medicines.GetFiltered(ctx, limit, offset, branch, drugSubstance)
+	if err != nil {
+		http.Error(w, "Error while retrieveng items", http.StatusInternalServerError)
 	}
-
-	if drugSubstance != "" {
-		whereClauses = append(whereClauses, "monodrogas.id=?")
-		args = append(args, "%"+drugSubstance+"%")
-		argIndex++
+	err = json.NewEncoder(w).Encode(medicines)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-
-	args = append(args, limit, offset)
-
-	whereSQL := ""
-	if len(whereClauses) > 0 {
-		whereSQL = "WHERE " + strings.Join(whereClauses, " AND ")
-	}
-
-	query := fmt.Sprintf("SELECT id, name FROM medicamentos LIMIT $%d OFFSET $%d", whereSQL, argIndex, argIndex+1)
-	return query, nil
+	w.Header().Set("Content-type", "application/json")
 }
+
+// func medicineFiltering(r *url.Values) (string, error) {
+//   GetPaginationParams(r)
+//   query:="SELECT medicamentos."
+//   if url
+//   return "",nil
+// }
 
 // func (a *application) getCatalogHandler(w http.ResponseWriter, r *http.Request) {
 // 	query := r.URL.Query()
@@ -169,3 +198,4 @@ func medicineFiltering(r *url.Values) (string, error) {
 // 	limit := 2
 // 	a.getPaginatedMedicines(w, r, limit, page*limit)
 // }
+//
