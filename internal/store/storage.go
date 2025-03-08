@@ -11,6 +11,7 @@ type Storage struct {
 		GetByID(context.Context, string) (*Medicine, error)
 		GetAll(context.Context) (*[]Medicine, error)
 		GetPaginated(context.Context, int, int) (*[]Medicine, error)
+		GetFiltered(context.Context, int, int, string, string) (*[]MedicineView, error)
 	}
 
 	Employees interface {
