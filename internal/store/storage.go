@@ -7,7 +7,7 @@ import (
 
 type Storage struct {
 	Medicines interface {
-		Create(context.Context, *Medicine) error
+		Create(context.Context, *Medicine, *MedicineExtraData) error
 		GetByID(context.Context, string) (*Medicine, error)
 		GetAll(context.Context) (*[]Medicine, error)
 		GetPaginated(context.Context, int, int) (*[]Medicine, error)

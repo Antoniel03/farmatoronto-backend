@@ -2,8 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"strconv"
-
 	"github.com/Antoniel03/farmatoronto-backend/internal/store"
 	"github.com/go-chi/chi/v5"
 
@@ -44,10 +42,11 @@ func (a *application) createUserHandler(w http.ResponseWriter, r *http.Request) 
 	hash := generateHash(payload.Password)
 
 	u := &store.User{
-		Id:       payload.Id,
-		Email:    payload.Email,
-		Password: string(hash),
-		UserType: payload.UserType,
+		ID:         payload.ID,
+		EmployeeID: payload.EmployeeID,
+		Email:      payload.Email,
+		Password:   string(hash),
+		UserType:   payload.UserType,
 	}
 	ctx := r.Context()
 
@@ -66,13 +65,11 @@ func (a *application) createUserHandler(w http.ResponseWriter, r *http.Request) 
 func (a *application) getUsersHandler(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query()
-	if query.Has("page") {
-		limit := 2
-		if page, err := GetPaginationParam(&query); err == nil {
-			log.Print("page: ", page)
-			a.getPaginatedUsers(w, r, limit, page*limit)
+	if query.Has("limit") && query.Has("offset") {
+		if limit, offset, err := GetPaginationParams(&query); err == nil {
+			a.getPaginatedUsers(w, r, limit, offset)
 		} else {
-			http.Error(w, "invalid page paramameter", http.StatusInternalServerError)
+			http.Error(w, "invalid page paramameter", http.StatusBadRequest)
 		}
 		return
 	}
@@ -114,13 +111,7 @@ func (a *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user.Password = payload.Password
-
-	id, err := strconv.Atoi(user.Id)
-	if err != nil {
-		log.Println(err)
-	}
-
-	token, err := GenerateJWT(id, user.UserType, a.config.jwtAuth.expiration, &a.config.jwtAuth.tokenAuth)
+	token, err := GenerateJWT(user.ID, user.UserType, a.config.jwtAuth.expiration, &a.config.jwtAuth.tokenAuth)
 	if err != nil {
 		log.Println("Token error: ", err)
 	}

@@ -2,14 +2,42 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/Antoniel03/farmatoronto-backend/internal/store"
 	"github.com/go-chi/chi/v5"
 )
 
+type MedicinePayload struct {
+	store.Medicine
+	LabID    int64 `json:"lab_id"`
+	BranchID int64 `json:"branch_id"`
+	Amount   int   `json:"amount"`
+}
+
 func (a *application) getMedicinesHandler(w http.ResponseWriter, r *http.Request) {
+
+	query := r.URL.Query()
+
+	q, err := medicineFiltering(&query)
+	if err == nil {
+		log.Println(q)
+	}
+
+	if query.Has("limit") && query.Has("offset") {
+		if limit, offset, err := GetPaginationParams(&query); err == nil {
+			a.getPaginatedMedicines(w, r, limit, offset)
+		} else {
+			http.Error(w, "invalid page paramameter", http.StatusBadRequest)
+		}
+		return
+	}
+
 	ctx := r.Context()
 	medicines, err := a.store.Medicines.GetAll(ctx)
 	if err != nil {
@@ -45,7 +73,7 @@ func (a *application) getMedicineHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (a *application) createMedicineHandler(w http.ResponseWriter, r *http.Request) {
-	payload := store.Medicine{}
+	payload := MedicinePayload{}
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -55,12 +83,20 @@ func (a *application) createMedicineHandler(w http.ResponseWriter, r *http.Reque
 
 	m := &store.Medicine{
 		Name:          payload.Name,
+		Presentation:  payload.Presentation,
+		Action:        payload.Action,
 		MainComponent: payload.MainComponent,
 		Price:         payload.Price,
 	}
 	ctx := r.Context()
 
-	if err := a.store.Medicines.Create(ctx, m); err != nil {
+	extra := &store.MedicineExtraData{
+		LabID:    payload.LabID,
+		BranchID: payload.BranchID,
+		Amount:   payload.Amount,
+	}
+
+	if err := a.store.Medicines.Create(ctx, m, extra); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		log.Println("Couldn't complete operation: ", err)
 		return
@@ -82,18 +118,54 @@ func (a *application) getPaginatedMedicines(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-type", "application/json")
 }
 
-func (a *application) getCatalogHandler(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
+func medicineFiltering(r *url.Values) (string, error) {
+	branch := r.Get("branch")
+	drugSubstance := r.Get("drug_substance")
 
-	if !query.Has("page") {
-		http.Error(w, "pagination parameters not found", http.StatusBadRequest)
-		return
-	}
-	page, err := GetPaginationParam(&query)
+	limit, offset, err := GetPaginationParams(r)
 	if err != nil {
-		http.Error(w, "invalid pagination parameter", http.StatusBadRequest)
-		return
+		return "", errors.New("invalid pagination parameters")
 	}
-	limit := 2
-	a.getPaginatedMedicines(w, r, limit, page*limit)
+
+	whereClauses := []string{}
+	args := []interface{}{}
+	argIndex := 1
+
+	if branch != "" {
+		whereClauses = append(whereClauses, "farmacia_sucursal.id=?")
+		args = append(args, "%"+branch+"%")
+		argIndex++
+	}
+
+	if drugSubstance != "" {
+		whereClauses = append(whereClauses, "monodrogas.id=?")
+		args = append(args, "%"+drugSubstance+"%")
+		argIndex++
+	}
+
+	args = append(args, limit, offset)
+
+	whereSQL := ""
+	if len(whereClauses) > 0 {
+		whereSQL = "WHERE " + strings.Join(whereClauses, " AND ")
+	}
+
+	query := fmt.Sprintf("SELECT id, name FROM medicamentos LIMIT $%d OFFSET $%d", whereSQL, argIndex, argIndex+1)
+	return query, nil
 }
+
+// func (a *application) getCatalogHandler(w http.ResponseWriter, r *http.Request) {
+// 	query := r.URL.Query()
+//
+// 	if !query.Has("page") {
+// 		http.Error(w, "pagination parameters not found", http.StatusBadRequest)
+// 		return
+// 	}
+// 	page, err := GetPaginationParam(&query)
+// 	if err != nil {
+// 		http.Error(w, "invalid pagination parameter", http.StatusBadRequest)
+// 		return
+// 	}
+// 	limit := 2
+// 	a.getPaginatedMedicines(w, r, limit, page*limit)
+// }

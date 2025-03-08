@@ -2,7 +2,7 @@ package db
 
 import (
 	"database/sql"
-
+	"github.com/Antoniel03/farmatoronto-backend/internal/env"
 	_ "github.com/mattn/go-sqlite3"
 
 	"os"
@@ -10,7 +10,8 @@ import (
 
 func SetupDB(database *sql.DB) error {
 	// Leer el archivo db_init.sql
-	sqlFile, err := os.ReadFile("scripts/db_init.sql")
+	path := env.GetString("DB_SCRIPT", "../../scripts/db_init.sql")
+	sqlFile, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
