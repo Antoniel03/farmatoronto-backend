@@ -66,18 +66,6 @@ func (s *MedicinesStore) Create(ctx context.Context, m *Medicine, extraData *Med
 	return nil
 }
 
-func (s *MedicinesStore) GetByID(ctx context.Context, id string) (*Medicine, error) {
-	query := `SELECT * FROM medicamentos WHERE id=?`
-
-	m := Medicine{}
-	err := s.db.QueryRowContext(ctx, query, id).Scan(&m.ID, &m.Name, &m.Presentation, &m.MainComponent, &m.Action, &m.Price)
-	if err != nil {
-		return nil, err
-	}
-	log.Printf("Query completed for the requested item\n%+v", m)
-	return &m, nil
-}
-
 func (s *MedicinesStore) GetAll(ctx context.Context) (*[]Medicine, error) {
 	query := `SELECT * FROM medicamentos`
 	var medicines []Medicine
@@ -124,8 +112,20 @@ func (s *MedicinesStore) GetPaginated(ctx context.Context, limit int, offset int
 	return &medicines, nil
 }
 
+func (s *MedicinesStore) GetByID(ctx context.Context, id string) (*Medicine, error) {
+	query := `SELECT * FROM medicamentos WHERE id=?`
+
+	m := Medicine{}
+	err := s.db.QueryRowContext(ctx, query, id).Scan(&m.ID, &m.Name, &m.Presentation, &m.MainComponent, &m.Action, &m.Price)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("Query completed for the requested item\n%+v", m)
+	return &m, nil
+}
+
 func (s *MedicinesStore) GetFiltered(ctx context.Context, limit int, offset int, branch string, drugSubstance string) (*[]MedicineView, error) {
-	sql, err := os.ReadFile(env.GetString("MED_Q", "../../internal/store/querys/medicines_view.sql"))
+	sql, err := os.ReadFile(env.GetString("MED_Q", "../..internal/store/querys/medicines_view.sql"))
 	if err != nil {
 		log.Println(err)
 		return nil, err

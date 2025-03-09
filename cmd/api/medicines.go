@@ -20,12 +20,6 @@ func (a *application) getMedicinesHandler(w http.ResponseWriter, r *http.Request
 
 	query := r.URL.Query()
 
-	// q, err := medicineFiltering(&query)
-	// if err == nil {
-	// 	log.Println(q)
-	// 	log.Println(err)
-	// }
-
 	if query.Has("limit") && query.Has("offset") {
 		if limit, offset, err := GetPaginationParams(&query); err == nil {
 			a.getPaginatedMedicines(w, r, limit, offset)
