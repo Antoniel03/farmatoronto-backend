@@ -52,7 +52,6 @@ func (a *application) createEmployeeHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	employee := &store.Employee{
-		ID:          payload.ID,
 		Name:        payload.Name,
 		Lastname:    payload.Lastname,
 		Birthday:    payload.Birthday,
@@ -82,13 +81,13 @@ func (a *application) getEmployeesViewHandler(w http.ResponseWriter, r *http.Req
 	}
 	branch := query.Get("branch")
 
-	log.Println("branch: " + branch)
+	log.Println("branch: "+branch+"limit: ", limit, "offset: ", offset)
 	ctx := r.Context()
-	employees, err := a.store.Employees.GetFiltered(ctx, limit, offset, branch)
+	employees, hasNextPage, err := a.store.Employees.GetFiltered(ctx, limit, offset, branch)
 	if err != nil {
 		http.Error(w, "Error while retrieveng items", http.StatusInternalServerError)
 	}
-	err = json.NewEncoder(w).Encode(employees)
+	err = json.NewEncoder(w).Encode(map[string]interface{}{"items": employees, "nextpage": hasNextPage})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

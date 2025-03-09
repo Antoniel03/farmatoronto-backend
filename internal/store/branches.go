@@ -66,25 +66,40 @@ func (s *BranchesStore) GetAll(ctx context.Context) (*[]Branch, error) {
 	return &branches, nil
 }
 
-func (s *BranchesStore) GetPaginated(ctx context.Context, limit int, offset int) (*[]Branch, error) {
+func (s *BranchesStore) GetPaginated(ctx context.Context, limit int, offset int) (*[]Branch, bool, error) {
 	query := `SELECT * FROM farmacia_sucursal LIMIT ? OFFSET ?`
 	var branches []Branch
 	rows, err := s.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
-		log.Println("Error")
-		return nil, err
+		log.Println(err)
+		return nil, false, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		item := Branch{}
-		err := rows.Scan(&item.ID, &item.CityID, &item.Address, &item.PhoneNumber)
+		err = rows.Scan(&item.ID, &item.CityID, &item.Address, &item.PhoneNumber)
 		if err != nil {
-			log.Println("Error")
-			return &branches, err
+			log.Println(err)
+			return &branches, false, err
 		}
 		log.Printf("storing item: %+v", item)
 		branches = append(branches, item)
 	}
-	return &branches, nil
+
+	hasNextPage := false
+	nextQuery := `SELECT COUNT(*) FROM farmacia_sucursal`
+	nextOffset := limit + offset
+	row := s.db.QueryRowContext(ctx, nextQuery)
+	var count int
+	err = row.Scan(&count)
+	if err != nil {
+		log.Println("Error getting count: ", err)
+	}
+
+	if nextOffset < count {
+		hasNextPage = true
+
+	}
+	return &branches, hasNextPage, nil
 }

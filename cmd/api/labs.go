@@ -84,11 +84,11 @@ func (a *application) getLabsHandler(w http.ResponseWriter, r *http.Request) {
 
 func (a *application) getPaginatedLabs(w http.ResponseWriter, r *http.Request, limit int, offset int) {
 	ctx := r.Context()
-	labs, err := a.store.Labs.GetPaginated(ctx, limit, offset)
+	labs, hasNextPage, err := a.store.Labs.GetPaginated(ctx, limit, offset)
 	if err != nil {
 		http.Error(w, "Error while retrieveng items", http.StatusInternalServerError)
 	}
-	err = json.NewEncoder(w).Encode(labs)
+	err = json.NewEncoder(w).Encode(map[string]interface{}{"items": labs, "nextpage": hasNextPage})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -127,11 +127,11 @@ func (s *MedicinesStore) GetByID(ctx context.Context, id string) (*Medicine, err
 	return &m, nil
 }
 
-func (s *MedicinesStore) GetFiltered(ctx context.Context, limit int, offset int, branch string, drugSubstance string) (*[]MedicineView, error) {
+func (s *MedicinesStore) GetFiltered(ctx context.Context, limit int, offset int, branch string, drugSubstance string) (*[]MedicineView, bool, error) {
 	sql, err := os.ReadFile(env.GetString("MED_Q", "../..internal/store/querys/medicines_view.sql"))
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return nil, false, err
 	}
 	params, args := handleMedicineFilters(branch, drugSubstance, limit, offset)
 	query := string(sql) + params
@@ -140,7 +140,7 @@ func (s *MedicinesStore) GetFiltered(ctx context.Context, limit int, offset int,
 	rows, err := s.db.QueryContext(ctx, query, *args...)
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return nil, false, err
 	}
 	defer rows.Close()
 
@@ -155,12 +155,13 @@ func (s *MedicinesStore) GetFiltered(ctx context.Context, limit int, offset int,
 
 		if err != nil {
 			log.Println(err)
-			return &medicines, err
+			return &medicines, false, err
 		}
 		log.Printf("storing item: %+v", item)
 		medicines = append(medicines, item)
 	}
-	return &medicines, nil
+	hasNextPage := handleMedicinePagination(s.db, ctx, []string{drugSubstance, branch}, limit+offset)
+	return &medicines, hasNextPage, nil
 }
 
 func handleMedicineFilters(branch string, drugSubstance string, limit int, offset int) (string, *[]interface{}) {
@@ -214,4 +215,41 @@ func GetDrugNames(db *sql.DB, ctx context.Context, id int64) (string, error) {
 		names = append(names, name)
 	}
 	return strings.Join(names, ", "), nil
+}
+
+func handleMedicinePagination(db *sql.DB, ctx context.Context, filters []string, nextOffset int) bool {
+	sql, err := os.ReadFile(env.GetString("MED_COUNT", "../..internal/store/querys/medicines_count.sql"))
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	query := string(sql)
+	var args []interface{}
+
+	if filters[0] != "" {
+		query += `WHERE monodrogas.nombre=?`
+		args = []interface{}{filters[0]}
+		if filters[1] != "" {
+			query += " AND ciudad.nombre=?"
+			args = append(args, filters[1])
+		}
+	} else if filters[1] != "" {
+		query = " WHERE ciudad.nombre=?"
+		args = []interface{}{filters[1]}
+	}
+
+	hasNextPage := false
+	row := db.QueryRowContext(ctx, query, args...)
+	var count int
+	err = row.Scan(&count)
+	if err != nil {
+		log.Println("Error getting count: ", err)
+	}
+
+	if nextOffset < count {
+		hasNextPage = true
+	}
+	return hasNextPage
+
 }

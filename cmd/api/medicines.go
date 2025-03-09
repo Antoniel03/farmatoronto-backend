@@ -159,11 +159,11 @@ func (a *application) getMedicinesViewHandler(w http.ResponseWriter, r *http.Req
 
 	log.Println("branch: " + branch + ", drug: " + drugSubstance)
 	ctx := r.Context()
-	medicines, err := a.store.Medicines.GetFiltered(ctx, limit, offset, branch, drugSubstance)
+	medicines, hasNextPage, err := a.store.Medicines.GetFiltered(ctx, limit, offset, branch, drugSubstance)
 	if err != nil {
 		http.Error(w, "Error while retrieveng items", http.StatusInternalServerError)
 	}
-	err = json.NewEncoder(w).Encode(medicines)
+	err = json.NewEncoder(w).Encode(map[string]interface{}{"items": medicines, "nextpage": hasNextPage})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
