@@ -145,17 +145,3 @@ func HasPaginationParams(query *url.Values) bool {
 	}
 	return false
 }
-
-// func GetPaginationParam(query *url.Values) (int, error) {
-// 	strPage := query.Get("page")
-//
-// 	if strPage == "" {
-// 		return -1, errors.New("invalid params")
-// 	}
-// 	convError := errors.New("conversion error")
-// 	page, err := strconv.Atoi(strPage)
-// 	if err != nil {
-// 		return -1, convError
-// 	}
-// 	return page, nil
-// }
