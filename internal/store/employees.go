@@ -79,21 +79,20 @@ func (s *EmployeesStore) GetAll(ctx context.Context) (*[]Employee, error) {
 	return &employees, nil
 }
 
-func (s *EmployeesStore) GetFiltered(ctx context.Context, limit int, offset int, branch string) (*[]EmployeeView, error) {
+func (s *EmployeesStore) GetFiltered(ctx context.Context, limit int, offset int, branch string) (*[]EmployeeView, bool, error) {
 	sql, err := os.ReadFile(env.GetString("EMP_Q", "../..internal/store/querys/employees_view.sql"))
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return nil, false, err
 	}
 	params, args := handleEmployeeFilters(branch, limit, offset)
-
 	query := string(sql) + params
 	log.Println(query)
 	var employees []EmployeeView
 	rows, err := s.db.QueryContext(ctx, query, *args...)
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return nil, false, err
 	}
 	defer rows.Close()
 
@@ -103,18 +102,21 @@ func (s *EmployeesStore) GetFiltered(ctx context.Context, limit int, offset int,
 			&item.Email, &item.Birthday, &item.Role)
 		if err != nil {
 			log.Println(err)
-			return &employees, err
+			return &employees, false, err
 		}
 		log.Printf("storing item: %+v", item)
 		employees = append(employees, item)
+
 	}
-	return &employees, nil
+	hasNextPage := handleEmpPagination(s.db, ctx, limit+offset, branch)
+	return &employees, hasNextPage, err
 }
 
 func handleEmployeeFilters(branch string, limit int, offset int) (string, *[]interface{}) {
 	finalQuery := ""
 
 	if branch == "" {
+		finalQuery = `LIMIT ? OFFSET ?`
 		return finalQuery, &[]interface{}{limit, offset}
 	}
 	finalQuery = `JOIN rotacion ON rotacion.empleado_id = empleados.id
@@ -123,4 +125,35 @@ func handleEmployeeFilters(branch string, limit int, offset int) (string, *[]int
                 WHERE ciudad.nombre= ? LIMIT ? OFFSET ?`
 
 	return finalQuery, &[]interface{}{branch, limit, offset}
+}
+
+func handleEmpPagination(db *sql.DB, ctx context.Context, nextOffset int, branch string) bool {
+	var query string
+	if branch != "" {
+		query = `SELECT COUNT(*) FROM empleados JOIN usuarios 
+    ON usuarios.codempleado = empleados.id 
+    JOIN rotacion ON rotacion.empleado_id = empleados.id
+    JOIN farmacia_sucursal ON farmacia_sucursal.id=rotacion.sucursal_id
+    JOIN ciudad ON ciudad.id=farmacia_sucursal.ciudad_id
+    WHERE ciudad.nombre= ?`
+	} else {
+		query = `SELECT COUNT(*) FROM 
+    empleados JOIN usuarios ON usuarios.codempleado = empleados.id`
+	}
+
+	row := db.QueryRowContext(ctx, query, branch)
+
+	var count int
+	err := row.Scan(&count)
+	if err != nil {
+		log.Println("Error getting count: ", err)
+		return false // Or handle the error appropriately
+	}
+
+	log.Println("nextOffset:", nextOffset, "totalCount:", count)
+
+	if nextOffset < count {
+		return true
+	}
+	return false
 }

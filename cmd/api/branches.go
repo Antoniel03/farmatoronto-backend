@@ -81,11 +81,11 @@ func (a *application) getBranchesHandler(w http.ResponseWriter, r *http.Request)
 
 func (a *application) getPaginatedBranches(w http.ResponseWriter, r *http.Request, limit int, offset int) {
 	ctx := r.Context()
-	branches, err := a.store.Branches.GetPaginated(ctx, limit, offset)
+	branches, hasNextPage, err := a.store.Branches.GetPaginated(ctx, limit, offset)
 	if err != nil {
 		http.Error(w, "Error while retrieveng items", http.StatusInternalServerError)
 	}
-	err = json.NewEncoder(w).Encode(branches)
+	err = json.NewEncoder(w).Encode(map[string]interface{}{"items": branches, "nextpage": hasNextPage})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -11,14 +11,14 @@ type Storage struct {
 		GetByID(context.Context, string) (*Medicine, error)
 		GetAll(context.Context) (*[]Medicine, error)
 		GetPaginated(context.Context, int, int) (*[]Medicine, error)
-		GetFiltered(context.Context, int, int, string, string) (*[]MedicineView, error)
+		GetFiltered(context.Context, int, int, string, string) (*[]MedicineView, bool, error)
 	}
 
 	Employees interface {
 		Create(context.Context, *Employee) error
 		GetByID(context.Context, string) (*Employee, error)
 		GetAll(context.Context) (*[]Employee, error)
-		GetFiltered(context.Context, int, int, string) (*[]EmployeeView, error)
+		GetFiltered(context.Context, int, int, string) (*[]EmployeeView, bool, error)
 	}
 
 	Users interface {
@@ -34,14 +34,14 @@ type Storage struct {
 		Create(context.Context, *Lab) error
 		GetByID(context.Context, string) (*Lab, error)
 		GetAll(context.Context) (*[]Lab, error)
-		GetPaginated(context.Context, int, int) (*[]Lab, error)
+		GetPaginated(context.Context, int, int) (*[]Lab, bool, error)
 	}
 
 	Branches interface {
 		Create(context.Context, *Branch) error
 		GetByID(context.Context, string) (*Branch, error)
 		GetAll(context.Context) (*[]Branch, error)
-		GetPaginated(context.Context, int, int) (*[]Branch, error)
+		GetPaginated(context.Context, int, int) (*[]Branch, bool, error)
 	}
 
 	Drugs interface {

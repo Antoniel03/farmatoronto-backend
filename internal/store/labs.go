@@ -66,13 +66,13 @@ func (s *LabsStore) GetAll(ctx context.Context) (*[]Lab, error) {
 	return &labs, nil
 }
 
-func (s *LabsStore) GetPaginated(ctx context.Context, limit int, offset int) (*[]Lab, error) {
+func (s *LabsStore) GetPaginated(ctx context.Context, limit int, offset int) (*[]Lab, bool, error) {
 	query := `SELECT * FROM laboratorio LIMIT ? OFFSET ?`
 	var labs []Lab
 	rows, err := s.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
-		log.Println("Error")
-		return nil, err
+		log.Println(err)
+		return nil, false, err
 	}
 	defer rows.Close()
 
@@ -80,11 +80,30 @@ func (s *LabsStore) GetPaginated(ctx context.Context, limit int, offset int) (*[
 		item := Lab{}
 		err := rows.Scan(&item.ID, &item.Name, &item.Address, &item.PhoneNumber)
 		if err != nil {
-			log.Println("Error")
-			return &labs, err
+			log.Println(err)
+			return &labs, false, err
 		}
 		log.Printf("storing item: %+v", item)
 		labs = append(labs, item)
 	}
-	return &labs, nil
+
+	hasNextPage := handleLabPagination(s.db, ctx, limit+offset)
+	return &labs, hasNextPage, nil
+}
+
+func handleLabPagination(db *sql.DB, ctx context.Context, nextOffset int) bool {
+	hasNextPage := false
+	nextQuery := `SELECT COUNT(*) FROM laboratorio`
+	row := db.QueryRowContext(ctx, nextQuery)
+	var count int
+	err := row.Scan(&count)
+	if err != nil {
+		log.Println("Error getting count: ", err)
+	}
+
+	if nextOffset < count {
+		hasNextPage = true
+
+	}
+	return hasNextPage
 }
