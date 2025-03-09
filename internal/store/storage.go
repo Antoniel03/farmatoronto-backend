@@ -16,6 +16,9 @@ type Storage struct {
 
 	Employees interface {
 		Create(context.Context, *Employee) error
+		GetByID(context.Context, string) (*Employee, error)
+		GetAll(context.Context) (*[]Employee, error)
+		GetFiltered(context.Context, int, int, string) (*[]EmployeeView, error)
 	}
 
 	Users interface {
