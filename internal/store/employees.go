@@ -80,7 +80,7 @@ func (s *EmployeesStore) GetAll(ctx context.Context) (*[]Employee, error) {
 }
 
 func (s *EmployeesStore) GetFiltered(ctx context.Context, limit int, offset int, branch string) (*[]EmployeeView, bool, error) {
-	sql, err := os.ReadFile(env.GetString("EMP_Q", "../..internal/store/querys/employees_view.sql"))
+	sql, err := os.ReadFile(env.GetString("EMP_Q", "../../internal/store/querys/employees_view.sql"))
 	if err != nil {
 		log.Println(err)
 		return nil, false, err
@@ -147,10 +147,8 @@ func handleEmpPagination(db *sql.DB, ctx context.Context, nextOffset int, branch
 	err := row.Scan(&count)
 	if err != nil {
 		log.Println("Error getting count: ", err)
-		return false // Or handle the error appropriately
+		return false
 	}
-
-	log.Println("nextOffset:", nextOffset, "totalCount:", count)
 
 	if nextOffset < count {
 		return true

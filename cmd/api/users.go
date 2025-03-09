@@ -11,6 +11,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type UserData struct {
+	store.User
+	Role string `json:"role"`
+}
+
 func generateHash(password string) []byte {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {

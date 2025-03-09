@@ -11,6 +11,7 @@ type User struct {
 	EmployeeID int64  `json:"employee_id"`
 	Email      string `json:"email"`
 	Password   string `json:"password"`
+	Role       string `json:"user_type"`
 }
 
 type UsersStore struct {
@@ -51,11 +52,15 @@ func (s *UsersStore) GetAll(ctx context.Context) (*[]User, error) {
 }
 
 func (s *UsersStore) GetByID(ctx context.Context, id string) (*User, error) {
-	query := `SELECT * FROM usuarios WHERE id=?`
+	query := `SELECT usuarios.id, usuarios.correo, 
+           usuarios.contrasena, empleados.id, empleados.cargo 
+    FROM usuarios JOIN empleados ON empleados.id= usuarios.codempleado 
+    WHERE usuarios.id=?`
 
 	u := User{}
-	err := s.db.QueryRowContext(ctx, query, id).Scan(&u.ID, &u.Email, &u.Password, &u.EmployeeID)
+	err := s.db.QueryRowContext(ctx, query, id).Scan(&u.ID, &u.Email, &u.Password, &u.EmployeeID, &u.Role)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	log.Printf("Query completed for the requested item\n%+v", u)
