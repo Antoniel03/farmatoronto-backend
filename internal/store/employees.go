@@ -14,10 +14,12 @@ type EmployeeView struct {
 }
 
 type Employee struct {
-	ID          string `json:"id"`
+	ID          int64  `json:"id"`
 	Name        string `json:"name"`
 	Lastname    string `json:"lastname"`
 	Birthday    string `json:"birthday"`
+	C_ID        string `json:"c_id"`
+	Role        string `json:"role"`
 	Address     string `json:"address"`
 	PhoneNumber string `json:"phonenumber"`
 }
@@ -28,12 +30,12 @@ type EmployeesStore struct {
 
 func (s *EmployeesStore) Create(ctx context.Context, e *Employee) error {
 	query := `INSERT INTO empleados(nombre,apellido,fecha_nacimiento,
-            direccion,telefono)
-          VALUES(?,?,?,?,?) RETURNING id`
+            cedula,cargo,direccion,telefono)
+          VALUES(?,?,?,?,?,?,?) RETURNING id`
 
 	var id int
 	err := s.db.QueryRowContext(ctx, query, e.Name, e.Lastname, e.Birthday,
-		e.Address, e.PhoneNumber).Scan(&id)
+		e.C_ID, e.Role, e.Address, e.PhoneNumber).Scan(&id)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -46,7 +48,7 @@ func (s *EmployeesStore) GetByID(ctx context.Context, id string) (*Employee, err
 	query := `SELECT * FROM empleados WHERE id=?`
 
 	e := Employee{}
-	err := s.db.QueryRowContext(ctx, query, id).Scan(&e.ID, &e.Name, &e.Lastname, &e.Birthday, &e.Address, &e.PhoneNumber)
+	err := s.db.QueryRowContext(ctx, query, id).Scan(&e.ID, &e.Name, &e.Lastname, &e.Role, &e.Birthday, &e.Address, &e.PhoneNumber, &e.C_ID)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +68,7 @@ func (s *EmployeesStore) GetAll(ctx context.Context) (*[]Employee, error) {
 
 	for rows.Next() {
 		item := Employee{}
-		err := rows.Scan(&item.ID, &item.Name, &item.Lastname, &item.Birthday, &item.Address, &item.PhoneNumber)
+		err := rows.Scan(&item.ID, &item.Name, &item.Lastname, &item.Role, &item.Birthday, &item.Address, &item.PhoneNumber, &item.C_ID)
 		if err != nil {
 			log.Println("Error")
 			return &employees, err
@@ -97,8 +99,8 @@ func (s *EmployeesStore) GetFiltered(ctx context.Context, limit int, offset int,
 
 	for rows.Next() {
 		item := EmployeeView{}
-		err := rows.Scan(&item.ID, &item.Name, &item.Lastname, &item.Birthday,
-			&item.Address, &item.PhoneNumber, &item.Email)
+		err := rows.Scan(&item.ID, &item.Name, &item.Lastname, &item.C_ID, &item.Address, &item.PhoneNumber,
+			&item.Email, &item.Birthday, &item.Role)
 		if err != nil {
 			log.Println(err)
 			return &employees, err
@@ -115,9 +117,10 @@ func handleEmployeeFilters(branch string, limit int, offset int) (string, *[]int
 	if branch == "" {
 		return finalQuery, &[]interface{}{limit, offset}
 	}
-	finalQuery = `JOIN rotacion on rotacion.empleado_id = empleados.id
+	finalQuery = `JOIN rotacion ON rotacion.empleado_id = empleados.id
                 JOIN farmacia_sucursal ON farmacia_sucursal.id=rotacion.sucursal_id
-                  WHERE farmacia_sucursal.nombre= ? LIMIT ? OFFSET ?`
+                JOIN ciudad ON ciudad.id=farmacia_sucursal.ciudad_id
+                WHERE ciudad.nombre= ? LIMIT ? OFFSET ?`
 
 	return finalQuery, &[]interface{}{branch, limit, offset}
 }

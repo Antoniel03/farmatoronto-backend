@@ -11,9 +11,10 @@ import (
 
 type MedicinePayload struct {
 	store.Medicine
-	LabID    int64 `json:"lab_id"`
-	BranchID int64 `json:"branch_id"`
-	Amount   int   `json:"amount"`
+	ActionDescription string `json:"action_description"`
+	LabID             int64  `json:"lab_id"`
+	BranchID          int64  `json:"branch_id"`
+	Amount            int    `json:"amount"`
 }
 
 func (a *application) getMedicinesHandler(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +76,7 @@ func (a *application) createMedicineHandler(w http.ResponseWriter, r *http.Reque
 	m := &store.Medicine{
 		Name:          payload.Name,
 		Presentation:  payload.Presentation,
-		Action:        payload.Action,
+		ActionID:      payload.ActionID,
 		MainComponent: payload.MainComponent,
 		Price:         payload.Price,
 	}

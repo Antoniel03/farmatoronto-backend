@@ -11,7 +11,6 @@ type User struct {
 	EmployeeID int64  `json:"employee_id"`
 	Email      string `json:"email"`
 	Password   string `json:"password"`
-	UserType   string `json:"user_type"`
 }
 
 type UsersStore struct {
@@ -19,10 +18,10 @@ type UsersStore struct {
 }
 
 func (s *UsersStore) Create(ctx context.Context, u *User) error {
-	query := `INSERT INTO usuarios(correo,contrasena,tipo_usuario,codempleado)
-          VALUES(?,?,?,?) RETURNING id`
+	query := `INSERT INTO usuarios(correo,contrasena,codempleado)
+          VALUES(?,?,?) RETURNING id`
 	var id int
-	err := s.db.QueryRowContext(ctx, query, u.Email, u.Password, u.UserType, u.EmployeeID).Scan(&id)
+	err := s.db.QueryRowContext(ctx, query, u.Email, u.Password, u.EmployeeID).Scan(&id)
 	if err != nil {
 		return err
 	}
@@ -42,7 +41,7 @@ func (s *UsersStore) GetAll(ctx context.Context) (*[]User, error) {
 	defer rows.Close()
 	for rows.Next() {
 		item := User{}
-		err := rows.Scan(&item.ID, &item.Email, &item.Password, &item.UserType, &item.EmployeeID)
+		err := rows.Scan(&item.ID, &item.Email, &item.Password, &item.EmployeeID)
 		if err != nil {
 			return &users, err
 		}
@@ -55,7 +54,7 @@ func (s *UsersStore) GetByID(ctx context.Context, id string) (*User, error) {
 	query := `SELECT * FROM usuarios WHERE id=?`
 
 	u := User{}
-	err := s.db.QueryRowContext(ctx, query, id).Scan(&u.ID, &u.Email, &u.Password, &u.UserType, &u.EmployeeID)
+	err := s.db.QueryRowContext(ctx, query, id).Scan(&u.ID, &u.Email, &u.Password, &u.EmployeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +66,7 @@ func (s *UsersStore) GetByEmail(ctx context.Context, email string) (*User, error
 	query := `SELECT * FROM usuarios WHERE correo=?`
 
 	u := User{}
-	err := s.db.QueryRowContext(ctx, query, email).Scan(&u.ID, &u.Email, &u.Password, &u.UserType, &u.EmployeeID)
+	err := s.db.QueryRowContext(ctx, query, email).Scan(&u.ID, &u.Email, &u.Password, &u.EmployeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -87,11 +86,29 @@ func (s *UsersStore) GetPaginated(ctx context.Context, limit int, offset int) (*
 	defer rows.Close()
 	for rows.Next() {
 		item := User{}
-		err := rows.Scan(&item.ID, &item.Email, &item.Password, &item.UserType, &item.EmployeeID)
+		err := rows.Scan(&item.ID, &item.Email, &item.Password, &item.EmployeeID)
 		if err != nil {
 			return &users, err
 		}
 		users = append(users, item)
 	}
 	return &users, nil
+}
+
+func (s *UsersStore) GetLoginData(ctx context.Context, email string) (*User, *Employee, error) {
+	query := `SELECT usuarios.id,usuarios.correo,usuarios.contrasena, 
+            empleados.cargo, empleados.nombre, empleados.apellido
+            FROM usuarios JOIN empleados ON empleados.id=usuarios.codempleado
+            WHERE usuarios.correo=?`
+
+	e := Employee{}
+	u := User{}
+	err := s.db.QueryRowContext(ctx, query, email).Scan(&u.ID, &u.Email,
+		&u.Password, &e.Role, &e.Name, &e.Lastname)
+	if err != nil {
+		log.Println(err)
+		return nil, nil, err
+	}
+	log.Printf("Query completed for the requested item\n%+v", u)
+	return &u, &e, nil
 }

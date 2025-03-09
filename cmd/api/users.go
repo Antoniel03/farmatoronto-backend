@@ -46,7 +46,6 @@ func (a *application) createUserHandler(w http.ResponseWriter, r *http.Request) 
 		EmployeeID: payload.EmployeeID,
 		Email:      payload.Email,
 		Password:   string(hash),
-		UserType:   payload.UserType,
 	}
 	ctx := r.Context()
 
@@ -99,7 +98,7 @@ func (a *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	user, err := a.store.Users.GetByEmail(ctx, payload.Email)
+	user, employee, err := a.store.Users.GetLoginData(ctx, payload.Email)
 	if err != nil {
 		http.Error(w, "Email not found", http.StatusBadRequest)
 		log.Println(err)
@@ -111,7 +110,7 @@ func (a *application) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user.Password = payload.Password
-	token, err := GenerateJWT(user.ID, user.UserType, a.config.jwtAuth.expiration, &a.config.jwtAuth.tokenAuth)
+	token, err := GenerateJWT(user, employee, a.config.jwtAuth.expiration, &a.config.jwtAuth.tokenAuth)
 	if err != nil {
 		log.Println("Token error: ", err)
 	}

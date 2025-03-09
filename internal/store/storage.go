@@ -27,6 +27,7 @@ type Storage struct {
 		GetByID(context.Context, string) (*User, error)
 		GetAll(context.Context) (*[]User, error)
 		GetPaginated(context.Context, int, int) (*[]User, error)
+		GetLoginData(context.Context, string) (*User, *Employee, error)
 	}
 
 	Labs interface {

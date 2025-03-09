@@ -2,8 +2,10 @@ package main
 
 import (
 	// "strconv"
-	"github.com/go-chi/jwtauth/v5"
 	"time"
+
+	"github.com/Antoniel03/farmatoronto-backend/internal/store"
+	"github.com/go-chi/jwtauth/v5"
 )
 
 func NewJWTAuth(secret string, algorithm string) jwtauth.JWTAuth {
@@ -11,9 +13,10 @@ func NewJWTAuth(secret string, algorithm string) jwtauth.JWTAuth {
 	return *tokenAuth
 }
 
-func GenerateJWT(id int64, role string, exp int64, tokenAuth *jwtauth.JWTAuth) (string, error) {
+func GenerateJWT(u *store.User, e *store.Employee, exp int64, tokenAuth *jwtauth.JWTAuth) (string, error) {
 	expiration := time.Second * time.Duration(exp)
-	claims := map[string]interface{}{"id": id, "role": role}
+	userName := e.Name + " " + e.Lastname
+	claims := map[string]interface{}{"id": u.ID, "role": e.Role, "name": userName}
 	jwtauth.SetExpiry(claims, time.Now().Add(expiration))
 	_, tokenString, err := tokenAuth.Encode(claims)
 	if err != nil {
