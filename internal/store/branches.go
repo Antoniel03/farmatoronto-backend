@@ -7,11 +7,10 @@ import (
 )
 
 type Branch struct {
-	Id      string `json:"id"`
-	CityID  int64  `json:"city_id"`
-	Name    string `json:"name"`
-	Address string `json:"address"`
-	// Email   string `json:"email"`
+	ID          int64  `json:"id"`
+	CityID      int64  `json:"city_id"`
+	Address     string `json:"address"`
+	PhoneNumber string `json:"phonenumber"`
 }
 
 type BranchesStore struct {
@@ -19,11 +18,11 @@ type BranchesStore struct {
 }
 
 func (s *BranchesStore) Create(ctx context.Context, b *Branch) error {
-	query := `INSERT INTO farmacia_sucursal(ciudad_id,nombre,direccion)
+	query := `INSERT INTO farmacia_sucursal(ciudad_id,telefono,direccion)
           VALUES(?,?,?) RETURNING id`
 
 	var id int64
-	err := s.db.QueryRowContext(ctx, query, b.CityID, b.Name, b.Address).Scan(&id)
+	err := s.db.QueryRowContext(ctx, query, b.CityID, b.PhoneNumber, b.Address).Scan(&id)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -36,7 +35,7 @@ func (s *BranchesStore) GetByID(ctx context.Context, id string) (*Branch, error)
 	query := `SELECT * FROM farmacia_sucursal WHERE id=?`
 
 	b := Branch{}
-	err := s.db.QueryRowContext(ctx, query, id).Scan(&b.Id, &b.CityID, &b.Name, &b.Address)
+	err := s.db.QueryRowContext(ctx, query, id).Scan(&b.ID, &b.CityID, &b.Address, &b.PhoneNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +55,7 @@ func (s *BranchesStore) GetAll(ctx context.Context) (*[]Branch, error) {
 
 	for rows.Next() {
 		item := Branch{}
-		err := rows.Scan(&item.Id, &item.CityID, &item.Name, &item.Address)
+		err := rows.Scan(&item.ID, &item.CityID, &item.Address, &item.PhoneNumber)
 		if err != nil {
 			log.Println("Error")
 			return &branches, err
@@ -79,7 +78,7 @@ func (s *BranchesStore) GetPaginated(ctx context.Context, limit int, offset int)
 
 	for rows.Next() {
 		item := Branch{}
-		err := rows.Scan(&item.Id, &item.CityID, &item.Name, &item.Address)
+		err := rows.Scan(&item.ID, &item.CityID, &item.Address, &item.PhoneNumber)
 		if err != nil {
 			log.Println("Error")
 			return &branches, err

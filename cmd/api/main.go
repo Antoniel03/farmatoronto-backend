@@ -17,7 +17,7 @@ func main() {
 		},
 		jwtAuth: jwtConfig{
 			tokenAuth:  NewJWTAuth("a-very-ultra-super-secure-secret!", "HS256"),
-			expiration: env.GetInt64("JWT_EXP", 3600),
+			expiration: env.GetInt64("JWT_EXP", 3600*24*7),
 		},
 	}
 

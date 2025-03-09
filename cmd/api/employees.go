@@ -58,6 +58,8 @@ func (a *application) createEmployeeHandler(w http.ResponseWriter, r *http.Reque
 		Birthday:    payload.Birthday,
 		Address:     payload.Address,
 		PhoneNumber: payload.PhoneNumber,
+		Role:        payload.C_ID,
+		C_ID:        payload.C_ID,
 	}
 
 	ctx := r.Context()

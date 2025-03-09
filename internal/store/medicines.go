@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/Antoniel03/farmatoronto-backend/internal/env"
 )
@@ -22,14 +23,16 @@ type Medicine struct {
 	Name          string  `json:"name"`
 	Presentation  string  `json:"presentation"`
 	MainComponent string  `json:"maincomponent"`
-	Action        string  `json:"action"`
+	ActionID      int64   `json:"action_id"`
 	Price         float32 `json:"price"`
 }
 
 type MedicineView struct {
 	Medicine
-	Amount  int    `json:"amount"`
-	LabName string `json:"lab_name"`
+	Amount    int    `json:"amount"`
+	LabName   string `json:"lab_name"`
+	strAction string `json:str_action`
+	Drugs     string `json:"drugs"`
 }
 
 type MedicinesStore struct {
@@ -37,11 +40,11 @@ type MedicinesStore struct {
 }
 
 func (s *MedicinesStore) Create(ctx context.Context, m *Medicine, extraData *MedicineExtraData) error {
-	query := `INSERT INTO medicamentos(nombre,componenteprincipal,presentacion,accion,precio)
+	query := `INSERT INTO medicamentos(nombre,componenteprincipal,presentacion,accion_id,precio)
           VALUES(?,?,?,?,?) RETURNING id`
 
 	var medicineID int
-	err := s.db.QueryRowContext(ctx, query, m.Name, m.MainComponent, m.Presentation, m.Action, m.Price).Scan(&medicineID)
+	err := s.db.QueryRowContext(ctx, query, m.Name, m.MainComponent, m.Presentation, m.ActionID, m.Price).Scan(&medicineID)
 	if err != nil {
 		return err
 	}
@@ -71,16 +74,16 @@ func (s *MedicinesStore) GetAll(ctx context.Context) (*[]Medicine, error) {
 	var medicines []Medicine
 	rows, err := s.db.QueryContext(ctx, query)
 	if err != nil {
-		log.Println("Error")
+		log.Println(err)
 		return nil, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		item := Medicine{}
-		err := rows.Scan(&item.ID, &item.Name, &item.Presentation, &item.MainComponent, &item.Action, &item.Price)
+		err := rows.Scan(&item.ID, &item.Name, &item.MainComponent, &item.ActionID, &item.Presentation, &item.Price)
 		if err != nil {
-			log.Println("Error")
+			log.Println(err)
 			return &medicines, err
 		}
 		log.Printf("storing item: %+v", item)
@@ -101,7 +104,7 @@ func (s *MedicinesStore) GetPaginated(ctx context.Context, limit int, offset int
 
 	for rows.Next() {
 		item := Medicine{}
-		err := rows.Scan(&item.ID, &item.Name, &item.Presentation, &item.MainComponent, &item.Action, &item.Price)
+		err := rows.Scan(&item.ID, &item.Name, &item.MainComponent, &item.ActionID, &item.Presentation, &item.Price)
 		if err != nil {
 			log.Println(err)
 			return &medicines, err
@@ -116,7 +119,7 @@ func (s *MedicinesStore) GetByID(ctx context.Context, id string) (*Medicine, err
 	query := `SELECT * FROM medicamentos WHERE id=?`
 
 	m := Medicine{}
-	err := s.db.QueryRowContext(ctx, query, id).Scan(&m.ID, &m.Name, &m.Presentation, &m.MainComponent, &m.Action, &m.Price)
+	err := s.db.QueryRowContext(ctx, query, id).Scan(&m.ID, &m.Name, &m.MainComponent, &m.ActionID, &m.Presentation, &m.Price)
 	if err != nil {
 		return nil, err
 	}
@@ -143,8 +146,13 @@ func (s *MedicinesStore) GetFiltered(ctx context.Context, limit int, offset int,
 
 	for rows.Next() {
 		item := MedicineView{}
-		err := rows.Scan(&item.ID, &item.Name, &item.Presentation,
-			&item.MainComponent, &item.LabName, &item.Price, &item.Amount, &item.Action)
+		err := rows.Scan(&item.ID, &item.Name, &item.MainComponent,
+			&item.Presentation, &item.LabName, &item.Price, &item.Amount, &item.strAction)
+		item.Drugs, err = GetDrugNames(s.db, ctx, item.ID)
+		if err != nil {
+			log.Println(err)
+		}
+
 		if err != nil {
 			log.Println(err)
 			return &medicines, err
@@ -160,16 +168,14 @@ func handleMedicineFilters(branch string, drugSubstance string, limit int, offse
 	finalQuery := ""
 
 	if drugSubstance != "" {
-		finalQuery = `JOIN Medic_monodrogas ON Medic_monodrogas.codmedicamento = medicamentos.id
-                  JOIN monodrogas ON monodrogas.id = Medic_monodrogas.codmonodroga
-                  WHERE monodrogas.nombre=?`
+		finalQuery = `WHERE monodrogas.nombre=?`
 		args = []interface{}{drugSubstance}
 		if branch != "" {
-			finalQuery += " AND farmacia_sucursal.nombre=?"
+			finalQuery += " AND ciudad.nombre=?"
 			args = append(args, branch)
 		}
 	} else if branch != "" {
-		finalQuery = " WHERE farmacia_sucursal.nombre=?"
+		finalQuery = " WHERE ciudad.nombre=?"
 		args = []interface{}{branch}
 	}
 	log.Println(len(args))
@@ -180,4 +186,32 @@ func handleMedicineFilters(branch string, drugSubstance string, limit int, offse
 	}
 	finalQuery += " LIMIT ? OFFSET ?"
 	return finalQuery, &args
+}
+
+func GetDrugNames(db *sql.DB, ctx context.Context, id int64) (string, error) {
+	query := `SELECT monodrogas.nombre FROM monodrogas 
+            JOIN medic_monodrogas
+            ON medic_monodrogas.codmonodroga= monodrogas.id 
+            JOIN medicamentos ON medicamentos.id = medic_monodrogas.codmedicamento
+            WHERE medicamentos.id=?`
+
+	var names []string
+	rows, err := db.QueryContext(ctx, query, id)
+	if err != nil {
+		log.Println("Error")
+		return "", err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		name := ""
+		err := rows.Scan(&name)
+		if err != nil {
+			log.Println("Error")
+			return strings.Join(names, ", "), err
+		}
+		log.Printf("storing item: %+v", name)
+		names = append(names, name)
+	}
+	return strings.Join(names, ", "), nil
 }

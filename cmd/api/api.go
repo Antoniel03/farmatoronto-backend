@@ -66,6 +66,10 @@ func (app *application) mount() http.Handler {
 			r.Get("/employees", app.getEmployeesViewHandler)
 		})
 
+		r.Route("/drugs", func(r chi.Router) {
+			r.Post("/", app.CreateDrugsHandler)
+		})
+
 		r.Route("/employees", func(r chi.Router) {
 			r.Post("/", app.createEmployeeHandler)
 			r.Get("/", app.getEmployeesHandler)

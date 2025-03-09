@@ -19,9 +19,9 @@ func (a *application) createBranchHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	b := &store.Branch{
-		CityID:  payload.CityID,
-		Name:    payload.Name,
-		Address: payload.Address,
+		CityID:      payload.CityID,
+		PhoneNumber: payload.PhoneNumber,
+		Address:     payload.Address,
 	}
 	ctx := r.Context()
 
@@ -30,7 +30,7 @@ func (a *application) createBranchHandler(w http.ResponseWriter, r *http.Request
 		log.Println("Couldn't complete operation: ", err)
 		return
 	}
-
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (a *application) getBranchHandler(w http.ResponseWriter, r *http.Request) {

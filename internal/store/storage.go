@@ -27,6 +27,7 @@ type Storage struct {
 		GetByID(context.Context, string) (*User, error)
 		GetAll(context.Context) (*[]User, error)
 		GetPaginated(context.Context, int, int) (*[]User, error)
+		GetLoginData(context.Context, string) (*User, *Employee, error)
 	}
 
 	Labs interface {
@@ -42,6 +43,13 @@ type Storage struct {
 		GetAll(context.Context) (*[]Branch, error)
 		GetPaginated(context.Context, int, int) (*[]Branch, error)
 	}
+
+	Drugs interface {
+		Create(context.Context, *Drugs) error
+		// GetByID(context.Context, string) (*Drugs, error)
+		// GetAll(context.Context) (*[]Branch, error)
+		// GetPaginated(context.Context, int, int) (*[]Drugs, error)
+	}
 }
 
 func NewSQLiteStorage(db *sql.DB) Storage {
@@ -51,5 +59,6 @@ func NewSQLiteStorage(db *sql.DB) Storage {
 		Users:     &UsersStore{db},
 		Labs:      &LabsStore{db},
 		Branches:  &BranchesStore{db},
+		Drugs:     &DrugsStore{db},
 	}
 }
