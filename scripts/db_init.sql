@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS accion_terapeutica(
 
 CREATE TABLE IF NOT EXISTS monodrogas(
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    nombre VARCHAR(50),
+    nombre VARCHAR(50) UNIQUE,
     descripcion VARCHAR(50)
 );
 

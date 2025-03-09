@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/Antoniel03/farmatoronto-backend/internal/env"
 )
@@ -31,6 +32,7 @@ type MedicineView struct {
 	Amount    int    `json:"amount"`
 	LabName   string `json:"lab_name"`
 	strAction string `json:str_action`
+	Drugs     string `json:"drugs"`
 }
 
 type MedicinesStore struct {
@@ -146,6 +148,11 @@ func (s *MedicinesStore) GetFiltered(ctx context.Context, limit int, offset int,
 		item := MedicineView{}
 		err := rows.Scan(&item.ID, &item.Name, &item.MainComponent,
 			&item.Presentation, &item.LabName, &item.Price, &item.Amount, &item.strAction)
+		item.Drugs, err = GetDrugNames(s.db, ctx, item.ID)
+		if err != nil {
+			log.Println(err)
+		}
+
 		if err != nil {
 			log.Println(err)
 			return &medicines, err
@@ -179,4 +186,32 @@ func handleMedicineFilters(branch string, drugSubstance string, limit int, offse
 	}
 	finalQuery += " LIMIT ? OFFSET ?"
 	return finalQuery, &args
+}
+
+func GetDrugNames(db *sql.DB, ctx context.Context, id int64) (string, error) {
+	query := `SELECT monodrogas.nombre FROM monodrogas 
+            JOIN medic_monodrogas
+            ON medic_monodrogas.codmonodroga= monodrogas.id 
+            JOIN medicamentos ON medicamentos.id = medic_monodrogas.codmedicamento
+            WHERE medicamentos.id=?`
+
+	var names []string
+	rows, err := db.QueryContext(ctx, query, id)
+	if err != nil {
+		log.Println("Error")
+		return "", err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		name := ""
+		err := rows.Scan(&name)
+		if err != nil {
+			log.Println("Error")
+			return strings.Join(names, ", "), err
+		}
+		log.Printf("storing item: %+v", name)
+		names = append(names, name)
+	}
+	return strings.Join(names, ", "), nil
 }

@@ -155,7 +155,7 @@ func (a *application) getMedicinesViewHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 	branch := query.Get("branch")
-	drugSubstance := query.Get("drugsubstance")
+	drugSubstance := query.Get("drug")
 
 	log.Println("branch: " + branch + ", drug: " + drugSubstance)
 	ctx := r.Context()
@@ -170,27 +170,3 @@ func (a *application) getMedicinesViewHandler(w http.ResponseWriter, r *http.Req
 	}
 	w.Header().Set("Content-type", "application/json")
 }
-
-// func medicineFiltering(r *url.Values) (string, error) {
-//   GetPaginationParams(r)
-//   query:="SELECT medicamentos."
-//   if url
-//   return "",nil
-// }
-
-// func (a *application) getCatalogHandler(w http.ResponseWriter, r *http.Request) {
-// 	query := r.URL.Query()
-//
-// 	if !query.Has("page") {
-// 		http.Error(w, "pagination parameters not found", http.StatusBadRequest)
-// 		return
-// 	}
-// 	page, err := GetPaginationParam(&query)
-// 	if err != nil {
-// 		http.Error(w, "invalid pagination parameter", http.StatusBadRequest)
-// 		return
-// 	}
-// 	limit := 2
-// 	a.getPaginatedMedicines(w, r, limit, page*limit)
-// }
-//
