@@ -11,7 +11,7 @@ type User struct {
 	EmployeeID int64  `json:"employee_id"`
 	Email      string `json:"email"`
 	Password   string `json:"password"`
-	Role       string `json:"user_type"`
+	// Role       string `json:"user_type"`
 }
 
 type UsersStore struct {
@@ -51,6 +51,7 @@ func (s *UsersStore) GetAll(ctx context.Context) (*[]User, error) {
 	return &users, nil
 }
 
+// retornar cargo en alguna parte
 func (s *UsersStore) GetByID(ctx context.Context, id string) (*User, error) {
 	query := `SELECT usuarios.id, usuarios.correo, 
            usuarios.contrasena, empleados.id, empleados.cargo 
@@ -58,7 +59,7 @@ func (s *UsersStore) GetByID(ctx context.Context, id string) (*User, error) {
     WHERE usuarios.id=?`
 
 	u := User{}
-	err := s.db.QueryRowContext(ctx, query, id).Scan(&u.ID, &u.Email, &u.Password, &u.EmployeeID, &u.Role)
+	err := s.db.QueryRowContext(ctx, query, id).Scan(&u.ID, &u.Email, &u.Password, &u.EmployeeID) //<-&u.Role
 	if err != nil {
 		log.Println(err)
 		return nil, err

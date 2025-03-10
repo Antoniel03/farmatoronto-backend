@@ -19,6 +19,7 @@ type Storage struct {
 		GetByID(context.Context, string) (*Employee, error)
 		GetAll(context.Context) (*[]Employee, error)
 		GetFiltered(context.Context, int, int, string) (*[]EmployeeView, bool, error)
+		RegisterEmployee(context.Context, *Employee, *User, int64, string) error
 	}
 
 	Users interface {
@@ -45,10 +46,13 @@ type Storage struct {
 	}
 
 	Drugs interface {
-		Create(context.Context, *Drugs) error
-		// GetByID(context.Context, string) (*Drugs, error)
-		// GetAll(context.Context) (*[]Branch, error)
-		// GetPaginated(context.Context, int, int) (*[]Drugs, error)
+		Create(context.Context, *Drug) error
+		GetAll(context.Context) (*[]Drug, error)
+		GetPaginated(context.Context, int, int) (*[]Drug, bool, error)
+	}
+	Actions interface {
+		Create(context.Context, string) error
+		GetAll(context.Context) (*[]Action, error)
 	}
 }
 
@@ -60,5 +64,6 @@ func NewSQLiteStorage(db *sql.DB) Storage {
 		Labs:      &LabsStore{db},
 		Branches:  &BranchesStore{db},
 		Drugs:     &DrugsStore{db},
+		Actions:   &ActionsStore{db},
 	}
 }

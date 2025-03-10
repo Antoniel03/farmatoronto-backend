@@ -8,6 +8,48 @@ import (
 	"net/http"
 )
 
+type EmployeeData struct {
+	store.Employee
+	store.User
+	BranchID int64  `json:"branch_id"`
+	Date     string `json:"date"`
+}
+
+func (a *application) registerEmployeeHandler(w http.ResponseWriter, r *http.Request) {
+	var payload EmployeeData
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	hash := generateHash(payload.Password)
+
+	user := &store.User{
+		Email:    payload.Email,
+		Password: string(hash),
+	}
+
+	employee := &store.Employee{
+		Name:        payload.Name,
+		Lastname:    payload.Lastname,
+		Birthday:    payload.Birthday,
+		Address:     payload.Address,
+		PhoneNumber: payload.PhoneNumber,
+		Role:        payload.Role,
+		C_ID:        payload.C_ID,
+	}
+
+	ctx := r.Context()
+	if err := a.store.Employees.RegisterEmployee(ctx, employee, user, payload.BranchID, payload.Date); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Println(err)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
 func (a *application) getEmployeeHandler(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	ctx := r.Context()
