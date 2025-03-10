@@ -28,6 +28,42 @@ type EmployeesStore struct {
 	db *sql.DB
 }
 
+func (s *EmployeesStore) RegisterEmployee(ctx context.Context, e *Employee, u *User, branchID int64, date string) error {
+	employeeQuery := `INSERT INTO empleados(nombre,apellido,fecha_nacimiento,
+            cedula,cargo,direccion,telefono)
+          VALUES(?,?,?,?,?,?,?) RETURNING id`
+	var employeeID int
+	err := s.db.QueryRowContext(ctx, employeeQuery, e.Name, e.Lastname, e.Birthday,
+		e.C_ID, e.Role, e.Address, e.PhoneNumber).Scan(&employeeID)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	log.Printf("Query completed for new row with id: %v", employeeID)
+
+	userQuery := `INSERT INTO usuarios(correo,contrasena,codempleado)
+          VALUES(?,?,?) RETURNING id`
+	var userID int
+	err = s.db.QueryRowContext(ctx, userQuery, u.Email, u.Password, employeeID).Scan(&userID)
+
+	if err != nil {
+		query := `DELETE FROM empleados WHERE id ?`
+		_, nErr := s.db.ExecContext(ctx, query, employeeID)
+		if nErr != nil {
+			log.Println(err)
+		}
+		return err
+	}
+	log.Printf("Query completed for new user with id: %v", userID)
+	query := `INSERT INTO rotacion(empleado_id,sucursal_id,fecha_inicio,observaciones)
+              VALUES(?,?,?,?)`
+	err = s.db.QueryRowContext(ctx, query, employeeID, branchID, date, "ingreso").Scan(&userID)
+	if err != nil {
+		log.Println(err)
+	}
+	return nil
+}
+
 func (s *EmployeesStore) Create(ctx context.Context, e *Employee) error {
 	query := `INSERT INTO empleados(nombre,apellido,fecha_nacimiento,
             cedula,cargo,direccion,telefono)

@@ -53,9 +53,7 @@ func (app *application) mount() http.Handler {
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
 
-		//TODO retornar datos acorde a la vista
 		r.Route("/medicines", func(r chi.Router) {
-			// r.Get("/catalog", app.getCatalogHandler)
 			r.Get("/", app.getMedicinesHandler)
 			r.Get("/{id}", app.getMedicineHandler)
 			r.Post("/", app.createMedicineHandler)
@@ -64,14 +62,22 @@ func (app *application) mount() http.Handler {
 		r.Route("/adminview", func(r chi.Router) {
 			r.Get("/medicines", app.getMedicinesViewHandler)
 			r.Get("/employees", app.getEmployeesViewHandler)
+			r.Get("/drugs", app.getDrugsViewHandler)
 		})
 
 		r.Route("/drugs", func(r chi.Router) {
-			r.Post("/", app.CreateDrugsHandler)
+			r.Post("/", app.createDrugsHandler)
+			r.Get("/", app.getDrugsHandler)
+		})
+
+		r.Route("/actions", func(r chi.Router) {
+			r.Post("/", app.createActionHandler)
+			r.Get("/", app.getActionsHandler)
 		})
 
 		r.Route("/employees", func(r chi.Router) {
 			r.Post("/", app.createEmployeeHandler)
+			r.Post("/register", app.registerEmployeeHandler)
 			r.Get("/", app.getEmployeesHandler)
 			r.Get("/{id}", app.getEmployeeHandler)
 		})
