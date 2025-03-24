@@ -5,72 +5,107 @@ import (
 	"database/sql"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/Antoniel03/farmatoronto-backend/internal/env"
 )
 
-type MedicineExtraData struct {
-	mlID       int64 `json:"ml_id"`
-	MedicineID int64 `json:"id_medicine"`
-	BranchID   int64 `json:"branch_id"`
-	LabID      int64 `json:"branch_id"`
-	Amount     int   `json:"amount"`
-}
+//Human readable
 
 type Medicine struct {
-	ID            int64   `json:"id"`
-	Name          string  `json:"name"`
-	Presentation  string  `json:"presentation"`
-	MainComponent string  `json:"maincomponent"`
-	ActionID      int64   `json:"action_id"`
-	Price         float32 `json:"price"`
+	ID            int32    `json:"id"`
+	Name          string   `json:"name"`
+	Presentation  string   `json:"presentation"`
+	MainComponent string   `json:"maincomponent"`
+	Action        string   `json:"action"`
+	Price         float32  `json:"price"`
+	Drugs         []string `json:"drugs"`
+	LabName       string   `json:"lab_name"`
+	PharmacyName  string   `json:"pharmacy_city"`
+	Amount        int      `json:"amount"`
 }
 
-type MedicineView struct {
-	Medicine
-	Amount    int    `json:"amount"`
-	LabName   string `json:"lab_name"`
-	strAction string `json:str_action`
-	Drugs     string `json:"drugs"`
+// For requests
+type MedicineLinks struct {
+	LabID      int32   `json:"lab_id"`
+	PharmacyID int32   `json:"pharmacy_id"`
+	ActionID   int32   `json:"action_id"`
+	DrugsIDs   []int32 `json:"drugs_ids"`
 }
 
 type MedicinesStore struct {
 	db *sql.DB
 }
 
-func (s *MedicinesStore) Create(ctx context.Context, m *Medicine, extraData *MedicineExtraData) error {
+// Tables affected: medicamentos, medic_labs, stock, medic_monodrogas
+func (s *MedicinesStore) Create(ctx context.Context, m *Medicine, ml *MedicineLinks) error {
 	query := `INSERT INTO medicamentos(nombre,componenteprincipal,presentacion,accion_id,precio)
           VALUES(?,?,?,?,?) RETURNING id`
 
-	var medicineID int
-	err := s.db.QueryRowContext(ctx, query, m.Name, m.MainComponent, m.Presentation, m.ActionID, m.Price).Scan(&medicineID)
+	var medicineID int32
+	err := s.db.QueryRowContext(ctx, query, m.Name, m.MainComponent, m.Presentation, ml.ActionID, m.Price).Scan(&medicineID)
 	if err != nil {
 		return err
 	}
 
-	query = `INSERT INTO Medic_labs(codmedicamento,codlaboratorio)
-          VALUES(?,?) RETURNING id`
-
-	var medicLabsID int
-	err = s.db.QueryRowContext(ctx, query, medicineID, extraData.LabID).Scan(&medicLabsID)
+	err = linkToLab(s, ctx, medicineID, &ml.LabID)
 	if err != nil {
 		return err
 	}
 
-	query = `INSERT INTO stock(farmacia_id,medicamento_id,cantidad)
+	err = linkToPharmacy(s, ctx, m, ml)
+	if err != nil {
+		return err
+	}
+
+	err = linkToDrugs(s, ctx, medicineID, ml.DrugsIDs)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func linkToPharmacy(s *MedicinesStore, ctx context.Context, m *Medicine, ml *MedicineLinks) error {
+	query := `INSERT INTO stock(farmacia_id,medicamento_id,cantidad)
           VALUES(?,?,?) RETURNING id`
 
 	var stockID int
-	err = s.db.QueryRowContext(ctx, query, extraData.BranchID, medicineID, extraData.Amount).Scan(&stockID)
-	if err != nil {
-		return err
+	err := s.db.QueryRowContext(ctx, query, ml.PharmacyID, m.ID, m.Amount).Scan(&stockID)
+	return err
+}
+
+func linkToLab(s *MedicinesStore, ctx context.Context, medicineID int32, labID *int32) error {
+	query := `INSERT INTO medic_labs(medicamento_id,laboratorio_id)
+          VALUES(?,?) RETURNING id`
+
+	var medicLabsID int
+	err := s.db.QueryRowContext(ctx, query, medicineID, labID).Scan(&medicLabsID)
+	return err
+}
+
+func linkToDrugs(s *MedicinesStore, ctx context.Context, medicineID int32, drugs []int32) error {
+	query := `INSERT INTO medic_monodrogas(medicamento_id, monodroga_id) VALUES(?,?) RETURNING medic_monodrogas.id`
+	var err error
+
+	log.Println(len(drugs))
+	var medicDrugsID int
+	for i := 0; i < len(drugs); i++ {
+		log.Println("medicine ", medicineID, " linked to ", drugs[i])
+		err = s.db.QueryRowContext(ctx, query, medicineID, drugs[i]).Scan(&medicDrugsID)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func (s *MedicinesStore) GetAll(ctx context.Context) (*[]Medicine, error) {
-	query := `SELECT * FROM medicamentos`
+	query := `SELECT medicamentos.*, accion_terapeutica.descripcion, laboratorio.nombre, ciudad.nombre FROM medicamentos JOIN accion_terapeutica ON accion_terapeutica.id = medicamentos.accion_id
+            JOIN medic_labs ON medic_labs.medicamento_id= medicamentos.id
+            JOIN laboratorio ON laboratorio.id = medic_labs.laboratorio_id
+            JOIN stock ON stock.medicamento_id = medicamentos.id
+            JOIN sucursal ON sucursal.id = stock.farmacia_id
+            JOIN ciudad ON ciudad.id = sucursal.ciudad_id`
 	var medicines []Medicine
 	rows, err := s.db.QueryContext(ctx, query)
 	if err != nil {
@@ -80,46 +115,33 @@ func (s *MedicinesStore) GetAll(ctx context.Context) (*[]Medicine, error) {
 	defer rows.Close()
 
 	for rows.Next() {
+		ignore := ""
 		item := Medicine{}
-		err := rows.Scan(&item.ID, &item.Name, &item.MainComponent, &item.ActionID, &item.Presentation, &item.Price)
+		err := rows.Scan(&item.ID, &item.Name, &item.MainComponent, &ignore, &item.Presentation, &item.Price, &item.Action, &item.LabName, &item.PharmacyName)
 		if err != nil {
 			log.Println(err)
 			return &medicines, err
 		}
 		log.Printf("storing item: %+v", item)
-		medicines = append(medicines, item)
-	}
-	return &medicines, nil
-}
-
-func (s *MedicinesStore) GetPaginated(ctx context.Context, limit int, offset int) (*[]Medicine, error) {
-	query := `SELECT * FROM medicamentos LIMIT ? OFFSET ?`
-	var medicines []Medicine
-	rows, err := s.db.QueryContext(ctx, query, limit, offset)
-	if err != nil {
-		log.Println("Error")
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		item := Medicine{}
-		err := rows.Scan(&item.ID, &item.Name, &item.MainComponent, &item.ActionID, &item.Presentation, &item.Price)
+		drugs, err := GetDrugNames(s.db, ctx, item.ID)
 		if err != nil {
 			log.Println(err)
 			return &medicines, err
 		}
-		log.Printf("storing item: %+v", item)
+		item.Drugs = *drugs
 		medicines = append(medicines, item)
 	}
 	return &medicines, nil
 }
 
 func (s *MedicinesStore) GetByID(ctx context.Context, id string) (*Medicine, error) {
-	query := `SELECT * FROM medicamentos WHERE id=?`
+	query := `SELECT medicamentos.*, accion_terapeutica.descripcion
+             FROM medicamentos JOIN accion_terapeutica 
+             ON accion_terapeutica.id = medicamentos.accion_id 
+             WHERE id=?`
 
 	m := Medicine{}
-	err := s.db.QueryRowContext(ctx, query, id).Scan(&m.ID, &m.Name, &m.MainComponent, &m.ActionID, &m.Presentation, &m.Price)
+	err := s.db.QueryRowContext(ctx, query, id).Scan(&m.ID, &m.Name, &m.MainComponent, &m.Presentation, &m.Price, &m.Action)
 	if err != nil {
 		return nil, err
 	}
@@ -127,17 +149,20 @@ func (s *MedicinesStore) GetByID(ctx context.Context, id string) (*Medicine, err
 	return &m, nil
 }
 
-func (s *MedicinesStore) GetFiltered(ctx context.Context, limit int, offset int, branch string, drugSubstance string) (*[]MedicineView, bool, error) {
-	sql, err := os.ReadFile(env.GetString("MED_Q", "../..internal/store/querys/medicines_view.sql"))
+func (s *MedicinesStore) GetFiltered(ctx context.Context, pagination map[string]int) (*[]Medicine, bool, error) {
+	path := env.GetString("MED_Q", "internal/store/querys/medicines_view.sql")
+
+	query, err := os.ReadFile(path)
+	baseQuery := string(query)
 	if err != nil {
 		log.Println(err)
 		return nil, false, err
 	}
-	params, args := handleMedicineFilters(branch, drugSubstance, limit, offset)
-	query := string(sql) + params
-	log.Println(query)
-	var medicines []MedicineView
-	rows, err := s.db.QueryContext(ctx, query, *args...)
+
+	filters, args := handleMedicineFilters(pagination)
+	log.Printf("finalQuery: %+v", baseQuery+filters)
+	var medicines []Medicine
+	rows, err := s.db.QueryContext(ctx, baseQuery+filters, *args...)
 	if err != nil {
 		log.Println(err)
 		return nil, false, err
@@ -145,62 +170,75 @@ func (s *MedicinesStore) GetFiltered(ctx context.Context, limit int, offset int,
 	defer rows.Close()
 
 	for rows.Next() {
-		item := MedicineView{}
-		err := rows.Scan(&item.ID, &item.Name, &item.MainComponent,
-			&item.Presentation, &item.LabName, &item.Price, &item.Amount, &item.strAction)
-		item.Drugs, err = GetDrugNames(s.db, ctx, item.ID)
-		if err != nil {
-			log.Println(err)
-		}
-
+		item := Medicine{}
+		err := rows.Scan(&item.ID, &item.Name, &item.MainComponent, &item.Presentation,
+			&item.LabName, &item.Price, &item.Amount, &item.Action, &item.PharmacyName)
 		if err != nil {
 			log.Println(err)
 			return &medicines, false, err
 		}
 		log.Printf("storing item: %+v", item)
+		drugs, err := GetDrugNames(s.db, ctx, item.ID)
+		if err != nil {
+			log.Println(err)
+			return &medicines, false, err
+		}
+		item.Drugs = *drugs
 		medicines = append(medicines, item)
 	}
-	hasNextPage := handleMedicinePagination(s.db, ctx, []string{drugSubstance, branch}, limit+offset)
-	return &medicines, hasNextPage, nil
+	nextPage := handleMedicinePagination(s.db, ctx, pagination)
+	return &medicines, nextPage, err
 }
 
-func handleMedicineFilters(branch string, drugSubstance string, limit int, offset int) (string, *[]interface{}) {
+//Utilities
+
+func handleMedicineFilters(filters map[string]int) (string, *[]interface{}) {
 	var args []interface{}
 	finalQuery := ""
+	// log.Println("handleMedicinefilters check", limit, offset)
 
-	if drugSubstance != "" {
-		finalQuery = `WHERE monodrogas.nombre=?`
-		args = []interface{}{drugSubstance}
-		if branch != "" {
-			finalQuery += " AND ciudad.nombre=?"
-			args = append(args, branch)
+	if filters["drug"] != 0 {
+		finalQuery += ` JOIN medic_monodrogas ON medic_monodrogas.medicamento_id = medicamentos.id
+                    JOIN monodrogas ON monodrogas.id = medic_monodrogas.monodroga_id`
+	}
+
+	if filters["pharmacy"] != 0 {
+		finalQuery += `JOIN ciudad ON ciudad.id = sucursal.ciudad_id`
+	}
+
+	if filters["drug"] != 0 {
+		finalQuery += ` WHERE monodrogas.id=?`
+		args = []interface{}{filters["drug"]}
+		if filters["pharmacy"] != 0 {
+			finalQuery += " AND ciudad.id=?"
+			args = append(args, filters["pharmacy"])
 		}
-	} else if branch != "" {
-		finalQuery = " WHERE ciudad.nombre=?"
-		args = []interface{}{branch}
+	} else if filters["pharmacy"] != 0 {
+		finalQuery = " WHERE ciudad.id=?"
+		args = []interface{}{filters["pharmacy"]}
 	}
 	log.Println(len(args))
-	args = append(args, limit)
-	args = append(args, offset)
+	args = append(args, filters["limit"])
+	args = append(args, filters["offset"])
 	if len(args) == 0 {
-		args = []interface{}{limit, offset}
+		args = []interface{}{filters["limit"], filters["offset"]}
 	}
 	finalQuery += " LIMIT ? OFFSET ?"
 	return finalQuery, &args
 }
 
-func GetDrugNames(db *sql.DB, ctx context.Context, id int64) (string, error) {
+func GetDrugNames(db *sql.DB, ctx context.Context, id int32) (*[]string, error) {
 	query := `SELECT monodrogas.nombre FROM monodrogas 
             JOIN medic_monodrogas
-            ON medic_monodrogas.codmonodroga= monodrogas.id 
-            JOIN medicamentos ON medicamentos.id = medic_monodrogas.codmedicamento
+            ON medic_monodrogas.monodroga_id= monodrogas.id 
+            JOIN medicamentos ON medicamentos.id = medic_monodrogas.medicamento_id
             WHERE medicamentos.id=?`
 
 	var names []string
 	rows, err := db.QueryContext(ctx, query, id)
 	if err != nil {
 		log.Println("Error")
-		return "", err
+		return &names, err
 	}
 	defer rows.Close()
 
@@ -209,15 +247,16 @@ func GetDrugNames(db *sql.DB, ctx context.Context, id int64) (string, error) {
 		err := rows.Scan(&name)
 		if err != nil {
 			log.Println("Error")
-			return strings.Join(names, ", "), err
+			return &names, err
 		}
 		log.Printf("storing item: %+v", name)
 		names = append(names, name)
 	}
-	return strings.Join(names, ", "), nil
+	return &names, nil
 }
 
-func handleMedicinePagination(db *sql.DB, ctx context.Context, filters []string, nextOffset int) bool {
+func handleMedicinePagination(db *sql.DB, ctx context.Context, filters map[string]int) bool {
+	nextOffset := filters["limit"] + filters["offset"]
 	sql, err := os.ReadFile(env.GetString("MED_COUNT", "../..internal/store/querys/medicines_count.sql"))
 	if err != nil {
 		log.Println(err)
@@ -227,16 +266,16 @@ func handleMedicinePagination(db *sql.DB, ctx context.Context, filters []string,
 	query := string(sql)
 	var args []interface{}
 
-	if filters[0] != "" {
-		query += `WHERE monodrogas.nombre=?`
-		args = []interface{}{filters[0]}
-		if filters[1] != "" {
-			query += " AND ciudad.nombre=?"
-			args = append(args, filters[1])
+	if filters["drug"] != 0 {
+		query += `WHERE monodrogas.id=?`
+		args = []interface{}{filters["drug"]}
+		if filters["pharmacy"] != 0 {
+			query += " AND ciudad.id=?"
+			args = append(args, filters["pharmacy"])
 		}
-	} else if filters[1] != "" {
-		query = " WHERE ciudad.nombre=?"
-		args = []interface{}{filters[1]}
+	} else if filters["pharmacy"] != 0 {
+		query = " WHERE ciudad.id=?"
+		args = []interface{}{filters["pharmacy"]}
 	}
 
 	hasNextPage := false

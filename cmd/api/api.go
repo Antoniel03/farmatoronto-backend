@@ -7,13 +7,14 @@ import (
 	"strconv"
 	"time"
 
+	_ "github.com/Antoniel03/farmatoronto-backend/cmd/api/docs"
 	"github.com/Antoniel03/farmatoronto-backend/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/jwtauth/v5"
+	httpSwagger "github.com/swaggo/http-swagger" // http-swagger middleware
 )
 
-// Para emular la BD
 type application struct {
 	config config
 	store  store.Storage
@@ -46,63 +47,70 @@ func (app *application) run(mux http.Handler) error {
 
 func (app *application) mount() http.Handler {
 	r := chi.NewRouter()
-	tkAuth := &app.config.jwtAuth.tokenAuth
+	// tkAuth := &app.config.jwtAuth.tokenAuth
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	r.Get("/docs/*", httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:8082/docs/swagger.json"), //The url pointing to API definition
+	))
+
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
 
 		r.Route("/medicines", func(r chi.Router) {
+			r.Post("/", app.createMedicineHandler)
 			r.Get("/", app.getMedicinesHandler)
 			r.Get("/{id}", app.getMedicineHandler)
-			r.Post("/", app.createMedicineHandler)
 		})
 
-		r.Route("/adminview", func(r chi.Router) {
-			r.Get("/medicines", app.getMedicinesViewHandler)
-			r.Get("/employees", app.getEmployeesViewHandler)
-			r.Get("/drugs", app.getDrugsViewHandler)
-		})
-
+		// r.Route("/adminview", func(r chi.Router) {
+		// 	r.Get("/medicines", app.getMedicinesViewHandler)
+		// 	r.Get("/employees", app.getEmployeesViewHandler)
+		// 	r.Get("/drugs", app.getDrugsViewHandler)
+		// })
+		//
 		r.Route("/drugs", func(r chi.Router) {
 			r.Post("/", app.createDrugsHandler)
 			r.Get("/", app.getDrugsHandler)
 		})
-
+		//
 		r.Route("/actions", func(r chi.Router) {
 			r.Post("/", app.createActionHandler)
 			r.Get("/", app.getActionsHandler)
 		})
-
-		r.Route("/employees", func(r chi.Router) {
-			r.Post("/", app.createEmployeeHandler)
-			r.Post("/register", app.registerEmployeeHandler)
-			r.Get("/", app.getEmployeesHandler)
-			r.Get("/{id}", app.getEmployeeHandler)
+		//
+		// r.Route("/employees", func(r chi.Router) {
+		// 	r.Post("/", app.createEmployeeHandler)
+		// 	r.Post("/register", app.registerEmployeeHandler)
+		// 	r.Get("/", app.getEmployeesHandler)
+		// 	r.Get("/{id}", app.getEmployeeHandler)
+		// })
+		//
+		// r.Post("/register", app.createUserHandler)
+		// r.Route("/auth", func(r chi.Router) {
+		// 	r.Post("/login", app.loginHandler)
+		// 	r.Group(func(r chi.Router) {
+		// 		r.Use(jwtauth.Verifier(tkAuth))
+		// 		r.Use(jwtauth.Authenticator(tkAuth))
+		// 		r.Get("/users/{id}", app.getUserHandler)
+		// 		r.Get("/users", app.getUsersHandler)
+		// 	})
+		// })
+		//
+		r.Route("/labs", func(r chi.Router) {
+			// r.Use(jwtauth.Verifier(tkAuth))
+			// r.Use(jwtauth.Authenticator(tkAuth))
+			r.Post("/", app.createLabHandler)
+			r.Get("/{id}", app.getLabHandler)
+			r.Get("/", app.getLabsHandler)
 		})
-
-		r.Post("/register", app.createUserHandler)
-		r.Route("/auth", func(r chi.Router) {
-			r.Post("/login", app.loginHandler)
-			r.Group(func(r chi.Router) {
-				r.Use(jwtauth.Verifier(tkAuth))
-				r.Use(jwtauth.Authenticator(tkAuth))
-				r.Get("/users/{id}", app.getUserHandler)
-				r.Get("/users", app.getUsersHandler)
-			})
-		})
-		r.Group(func(r chi.Router) {
-			//TODO r.Route lab
-			r.Use(jwtauth.Verifier(tkAuth))
-			r.Use(jwtauth.Authenticator(tkAuth))
-			r.Post("/labs", app.createLabHandler)
-			r.Get("/labs/{id}", app.getLabHandler)
-			r.Get("/labs", app.getLabsHandler)
-
-			r.Post("/branches", app.createBranchHandler)
-			r.Get("/branches/{id}", app.getBranchHandler)
-			r.Get("/branches", app.getBranchesHandler)
+		//
+		r.Route("/branches", func(r chi.Router) {
+			r.Post("/", app.createBranchHandler)
+			r.Get("/{id}", app.getBranchHandler)
+			r.Get("/", app.getBranchesHandler)
 		})
 
 	})

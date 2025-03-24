@@ -7,11 +7,11 @@ import (
 
 type Storage struct {
 	Medicines interface {
-		Create(context.Context, *Medicine, *MedicineExtraData) error
-		GetByID(context.Context, string) (*Medicine, error)
+		Create(context.Context, *Medicine, *MedicineLinks) error
 		GetAll(context.Context) (*[]Medicine, error)
-		GetPaginated(context.Context, int, int) (*[]Medicine, error)
-		GetFiltered(context.Context, int, int, string, string) (*[]MedicineView, bool, error)
+		GetByID(context.Context, string) (*Medicine, error)
+		// GetPaginated(context.Context, int, int) (*[]Medicine, error)
+		GetFiltered(context.Context, map[string]int) (*[]Medicine, bool, error)
 	}
 
 	Employees interface {

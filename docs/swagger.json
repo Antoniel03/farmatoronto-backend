@@ -1,0 +1,35 @@
+{
+  "openapi":"2.0",
+
+  "info":{
+    "title":"farmatoronto-api",
+    "version":"1.0"
+  },
+
+  "paths":{
+    "/medicines":{
+      "get":{
+        "summary":{
+          "description":"Devuelve todas las medicinas en la base de datos",
+          "requestBody":"",
+          "responses":{
+            "200":{
+              "description":"Los datos fueron devueltos exitosamente",
+              "content":{
+                "application/json":{
+                  "schema":{
+                    "type":{
+
+                    }
+                  }
+                }
+              }
+            }
+          },
+        "operationId":"?",
+        }
+      }
+
+  }
+
+}
