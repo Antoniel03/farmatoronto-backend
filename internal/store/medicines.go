@@ -41,13 +41,12 @@ func (s *MedicinesStore) Create(ctx context.Context, m *Medicine, ml *MedicineLi
 	query := `INSERT INTO medicamentos(nombre,componenteprincipal,presentacion,accion_id,precio)
           VALUES(?,?,?,?,?) RETURNING id`
 
-	var medicineID int32
-	err := s.db.QueryRowContext(ctx, query, m.Name, m.MainComponent, m.Presentation, ml.ActionID, m.Price).Scan(&medicineID)
+	err := s.db.QueryRowContext(ctx, query, m.Name, m.MainComponent, m.Presentation, ml.ActionID, m.Price).Scan(&m.ID)
 	if err != nil {
 		return err
 	}
 
-	err = linkToLab(s, ctx, medicineID, &ml.LabID)
+	err = linkToLab(s, ctx, m.ID, &ml.LabID)
 	if err != nil {
 		return err
 	}
@@ -57,7 +56,7 @@ func (s *MedicinesStore) Create(ctx context.Context, m *Medicine, ml *MedicineLi
 		return err
 	}
 
-	err = linkToDrugs(s, ctx, medicineID, ml.DrugsIDs)
+	err = linkToDrugs(s, ctx, m.ID, ml.DrugsIDs)
 	if err != nil {
 		return err
 	}
@@ -200,23 +199,18 @@ func handleMedicineFilters(filters map[string]int) (string, *[]interface{}) {
 	if filters["drug"] != 0 {
 		finalQuery += ` JOIN medic_monodrogas ON medic_monodrogas.medicamento_id = medicamentos.id
                     JOIN monodrogas ON monodrogas.id = medic_monodrogas.monodroga_id`
-	}
-
-	if filters["pharmacy"] != 0 {
-		finalQuery += `JOIN ciudad ON ciudad.id = sucursal.ciudad_id`
-	}
-
-	if filters["drug"] != 0 {
 		finalQuery += ` WHERE monodrogas.id=?`
 		args = []interface{}{filters["drug"]}
+
 		if filters["pharmacy"] != 0 {
-			finalQuery += " AND ciudad.id=?"
+			finalQuery += ` AND sucursal.id=?`
 			args = append(args, filters["pharmacy"])
 		}
-	} else if filters["pharmacy"] != 0 {
-		finalQuery = " WHERE ciudad.id=?"
+	} else {
+		finalQuery += ` WHERE sucursal.id=?`
 		args = []interface{}{filters["pharmacy"]}
 	}
+
 	log.Println(len(args))
 	args = append(args, filters["limit"])
 	args = append(args, filters["offset"])
