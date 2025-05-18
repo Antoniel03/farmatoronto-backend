@@ -4,6 +4,6 @@ SELECT empleados.id,empleados.nombre,empleados.apellido,empleados.cedula,
       empleados.cargo
 
 FROM empleados
-JOIN usuarios on usuarios.codempleado = empleados.id
+JOIN usuarios on usuarios.empleado_id= empleados.id
 
 

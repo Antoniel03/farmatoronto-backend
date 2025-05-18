@@ -81,19 +81,19 @@ func (app *application) mount() http.Handler {
 			r.Get("/", app.getActionsHandler)
 		})
 		//
-		// r.Route("/employees", func(r chi.Router) {
-		// 	r.Post("/", app.createEmployeeHandler)
-		// 	r.Post("/register", app.registerEmployeeHandler)
-		// 	r.Get("/", app.getEmployeesHandler)
-		// 	r.Get("/{id}", app.getEmployeeHandler)
-		// })
+		r.Route("/employees", func(r chi.Router) {
+			r.Post("/", app.createEmployeeHandler)
+			r.Post("/register", app.registerEmployeeHandler)
+			r.Get("/", app.getEmployeesHandler)
+			r.Get("/{id}", app.getEmployeeHandler)
+		})
 		//
 		// r.Post("/register", app.createUserHandler)
 		// r.Route("/auth", func(r chi.Router) {
 		// 	r.Post("/login", app.loginHandler)
 		// 	r.Group(func(r chi.Router) {
-		// 		r.Use(jwtauth.Verifier(tkAuth))
-		// 		r.Use(jwtauth.Authenticator(tkAuth))
+		// 		// r.Use(jwtauth.Verifier(tkAuth))
+		// 		// r.Use(jwtauth.Authenticator(tkAuth))
 		// 		r.Get("/users/{id}", app.getUserHandler)
 		// 		r.Get("/users", app.getUsersHandler)
 		// 	})
