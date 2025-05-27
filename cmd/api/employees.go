@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
+	"net/url"
 )
 
 type EmployeeData struct {
@@ -72,6 +73,16 @@ func (a *application) getEmployeeHandler(w http.ResponseWriter, r *http.Request)
 
 func (a *application) getEmployeesHandler(w http.ResponseWriter, r *http.Request) {
 
+	query := r.URL.Query()
+
+	limit, offset, err := GetPaginationParams(&query)
+	if err == nil {
+		a.getEmployeesViewHandler(query, limit, offset, w, r)
+		return
+	}
+
+	log.Println("no pagination params passed")
+
 	ctx := r.Context()
 	employees, err := a.store.Employees.GetAll(ctx)
 	if err != nil {
@@ -113,14 +124,7 @@ func (a *application) createEmployeeHandler(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (a *application) getEmployeesViewHandler(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-
-	limit, offset, err := GetPaginationParams(&query)
-	if err != nil {
-		http.Error(w, "invalid parameters", http.StatusBadRequest)
-		return
-	}
+func (a *application) getEmployeesViewHandler(query url.Values, limit int, offset int, w http.ResponseWriter, r *http.Request) {
 	branch := query.Get("branch")
 
 	log.Println("branch: "+branch+"limit: ", limit, "offset: ", offset)

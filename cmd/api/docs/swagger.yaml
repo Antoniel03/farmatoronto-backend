@@ -1,0 +1,39 @@
+basePath: /
+host: localhost:8082
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: Testing-documentation
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: farmatoronto-API
+  version: "1.0"
+paths:
+  /medicines/{id}:
+    get:
+      consumes:
+      - application/json
+      description: get medicine by ID
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: string"  "xd
+        "400":
+          description: a
+          schema:
+            type: string
+      summary: Retrieves medicine info
+      tags:
+      - medicines
+swagger: "2.0"

@@ -2,8 +2,8 @@ CREATE TABLE IF NOT EXISTS usuarios(
             id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
             correo VARCHAR(50) UNIQUE,
             contrasena VARCHAR(50),
-            codempleado INTEGER UNIQUE,
-            FOREIGN KEY(codempleado) REFERENCES empleados(id)
+            empleado_id INTEGER UNIQUE,
+            FOREIGN KEY(empleado_id) REFERENCES empleados(id)
       );
 
 CREATE TABLE IF NOT EXISTS empleados(
@@ -19,8 +19,7 @@ CREATE TABLE IF NOT EXISTS empleados(
 
 CREATE TABLE IF NOT EXISTS administrador (
     id INTEGER NOT NULL PRIMARY KEY,
-    FOREIGN KEY (id) REFERENCES empleados(id)
-);
+    FOREIGN KEY (id) REFERENCES empleados(id));
 
 CREATE TABLE IF NOT EXISTS auxiliar (
     id INTEGER NOT NULL PRIMARY KEY,
@@ -67,10 +66,10 @@ CREATE TABLE IF NOT EXISTS monodrogas(
 
 CREATE TABLE IF NOT EXISTS medic_monodrogas(
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    codmedicamento INTEGER,
-    codmonodroga INTEGER,
-    FOREIGN KEY(codmedicamento) REFERENCES medicamentos(id),
-    FOREIGN KEY(codmonodroga) REFERENCES monodrogas(id)
+    medicamento_id INTEGER,
+    monodroga_id INTEGER,
+    FOREIGN KEY(medicamento_id) REFERENCES medicamentos(id),
+    FOREIGN KEY(monodroga_id) REFERENCES monodrogas(id)
 );
 
 CREATE TABLE IF NOT EXISTS stock(
@@ -93,7 +92,7 @@ CREATE TABLE IF NOT EXISTS rotacion (
     FOREIGN KEY(sucursal_id) REFERENCES farmacia_sucursal(id)
 );
 
-CREATE TABLE IF NOT EXISTS farmacia_sucursal(
+CREATE TABLE IF NOT EXISTS sucursal(
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     ciudad_id INTEGER UNIQUE,
     direccion VARCHAR(100)UNIQUE,
@@ -110,7 +109,7 @@ CREATE TABLE IF NOT EXISTS ciudad(
 CREATE TABLE IF NOT EXISTS compra(
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     ordencompra_id INTEGER,
-    fechaRecepcion DATE,
+    fecha_recepcion DATE,
     total REAL,
     FOREIGN KEY(ordencompra_id) REFERENCES ordencompra(id)
 );
@@ -126,14 +125,14 @@ CREATE TABLE IF NOT EXISTS compra_medicamentos(
 
 CREATE TABLE IF NOT EXISTS ordencompra(
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    codfarmacia INTEGER, 
-    codanalista INTEGER,
-    codlaboratorio INTEGER,
-    fechaEmision DATE,
-    formaPago VARCHAR(50),
-    FOREIGN KEY(codfarmacia) REFERENCES farmacia_sucursal(id),
-    FOREIGN KEY(codanalista) REFERENCES analista(id),
-    FOREIGN KEY(codlaboratorio) REFERENCES laboratorio(id)
+    sucursal_id INTEGER, 
+    analista_id INTEGER,
+    laboratorio_id INTEGER,
+    fecha_emision DATE,
+    forma_pago VARCHAR(50),
+    FOREIGN KEY(sucursal_id) REFERENCES sucursal(id),
+    FOREIGN KEY(analista_id) REFERENCES analista(id),
+    FOREIGN KEY(laboratorio_id) REFERENCES laboratorio(id)
 );
 
 CREATE TABLE IF NOT EXISTS laboratorio(
@@ -145,8 +144,8 @@ CREATE TABLE IF NOT EXISTS laboratorio(
 
 CREATE TABLE IF NOT EXISTS medic_labs(
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    codmedicamento INTEGER,
-    codlaboratorio INTEGER,
-    FOREIGN KEY(codmedicamento) REFERENCES medicamentos(id),
-    FOREIGN KEY(codlaboratorio) REFERENCES laboratorio(id)
+    medicamento_id INTEGER,
+    laboratorio_id INTEGER,
+    FOREIGN KEY(medicamento_id) REFERENCES medicamentos(id),
+    FOREIGN KEY(laboratorio_id) REFERENCES laboratorio(id)
 );

@@ -41,7 +41,7 @@ func (s *EmployeesStore) RegisterEmployee(ctx context.Context, e *Employee, u *U
 	}
 	log.Printf("Query completed for new row with id: %v", employeeID)
 
-	userQuery := `INSERT INTO usuarios(correo,contrasena,codempleado)
+	userQuery := `INSERT INTO usuarios(correo,contrasena,empleado_id)
           VALUES(?,?,?) RETURNING id`
 	var userID int
 	err = s.db.QueryRowContext(ctx, userQuery, u.Email, u.Password, employeeID).Scan(&userID)
@@ -63,6 +63,42 @@ func (s *EmployeesStore) RegisterEmployee(ctx context.Context, e *Employee, u *U
 	}
 	return nil
 }
+
+// func (s *EmployeesStore) RegisterEmployee(ctx context.Context, e *Employee, u *User, branchID int64, date string) error {
+// 	employeeQuery := `INSERT INTO empleados(nombre,apellido,fecha_nacimiento,
+//             cedula,cargo,direccion,telefono)
+//           VALUES(?,?,?,?,?,?,?) RETURNING id`
+// 	var employeeID int
+// 	err := s.db.QueryRowContext(ctx, employeeQuery, e.Name, e.Lastname, e.Birthday,
+// 		e.C_ID, e.Role, e.Address, e.PhoneNumber).Scan(&employeeID)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
+// 	log.Printf("Query completed for new row with id: %v", employeeID)
+//
+// 	userQuery := `INSERT INTO usuarios(correo,contrasena,empleado_id)
+//           VALUES(?,?,?) RETURNING id`
+// 	var userID int
+// 	err = s.db.QueryRowContext(ctx, userQuery, u.Email, u.Password, employeeID).Scan(&userID)
+//
+// 	if err != nil {
+// 		query := `DELETE FROM empleados WHERE id ?`
+// 		_, nErr := s.db.ExecContext(ctx, query, employeeID)
+// 		if nErr != nil {
+// 			log.Println(err)
+// 		}
+// 		return err
+// 	}
+// 	log.Printf("Query completed for new user with id: %v", userID)
+// 	query := `INSERT INTO rotacion(empleado_id,sucursal_id,fecha_inicio,observaciones)
+//               VALUES(?,?,?,?)`
+// 	err = s.db.QueryRowContext(ctx, query, employeeID, branchID, date, "ingreso").Scan(&userID)
+// 	if err != nil {
+// 		log.Println(err)
+// 	}
+// 	return nil
+// }
 
 func (s *EmployeesStore) Create(ctx context.Context, e *Employee) error {
 	query := `INSERT INTO empleados(nombre,apellido,fecha_nacimiento,
@@ -156,8 +192,8 @@ func handleEmployeeFilters(branch string, limit int, offset int) (string, *[]int
 		return finalQuery, &[]interface{}{limit, offset}
 	}
 	finalQuery = `JOIN rotacion ON rotacion.empleado_id = empleados.id
-                JOIN farmacia_sucursal ON farmacia_sucursal.id=rotacion.sucursal_id
-                JOIN ciudad ON ciudad.id=farmacia_sucursal.ciudad_id
+                JOIN sucursal ON sucursal.id=rotacion.sucursal_id
+                JOIN ciudad ON ciudad.id=sucursal.ciudad_id
                 WHERE ciudad.nombre= ? LIMIT ? OFFSET ?`
 
 	return finalQuery, &[]interface{}{branch, limit, offset}
@@ -167,14 +203,14 @@ func handleEmpPagination(db *sql.DB, ctx context.Context, nextOffset int, branch
 	var query string
 	if branch != "" {
 		query = `SELECT COUNT(*) FROM empleados JOIN usuarios 
-    ON usuarios.codempleado = empleados.id 
+    ON usuarios.empleado_id = empleados.id 
     JOIN rotacion ON rotacion.empleado_id = empleados.id
-    JOIN farmacia_sucursal ON farmacia_sucursal.id=rotacion.sucursal_id
-    JOIN ciudad ON ciudad.id=farmacia_sucursal.ciudad_id
+    JOIN sucursal ON sucursal.id=rotacion.sucursal_id
+    JOIN ciudad ON ciudad.id=sucursal.ciudad_id
     WHERE ciudad.nombre= ?`
 	} else {
 		query = `SELECT COUNT(*) FROM 
-    empleados JOIN usuarios ON usuarios.codempleado = empleados.id`
+    empleados JOIN usuarios ON usuarios.empleado_id = empleados.id`
 	}
 
 	row := db.QueryRowContext(ctx, query, branch)
